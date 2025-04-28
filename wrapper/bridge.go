@@ -1,12 +1,15 @@
 package wrapper
 
 /*
+#cgo CFLAGS: -std=c11
 #cgo CXXFLAGS: -std=c++17
-#cgo CXXFLAGS: -I${SRCDIR}/../llama.cpp/include
-#cgo LDFLAGS: -L${SRCDIR}/build/lib -lllama -lstdc++
-#include "bridge.h"
+#cgo CFLAGS: -I${SRCDIR}/../core
+#cgo CXXFLAGS: -I${SRCDIR}/../core
+#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lstdc++
+#include "core.h"
 */
 import "C"
+
 import "fmt"
 
 func LlamaApp() error {
