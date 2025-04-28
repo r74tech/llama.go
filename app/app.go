@@ -2,7 +2,10 @@
 
 package app
 
-import "github.com/Qitmeer/llama.go/config"
+import (
+	"github.com/Qitmeer/llama.go/config"
+	"github.com/Qitmeer/llama.go/wrapper"
+)
 
 type App struct {
 }
@@ -12,7 +15,7 @@ func (a *App) Start(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return wrapper.LlamaApp()
 }
 
 func (a *App) Stop() error {
