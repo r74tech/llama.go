@@ -5,80 +5,11 @@
 #include <string>
 #include <vector>
 
-static void print_usage(int, char ** argv) {
-    printf("\nexample usage:\n");
-    printf("\n    %s -m model.gguf [-n n_predict] [-ngl n_gpu_layers] [prompt]\n", argv[0]);
-    printf("\n");
-}
-
-int llama_app() {
-    int argc=0;
-    char ** argv;
-
-    // path to the model gguf file
-    std::string model_path;
-    // prompt to generate text from
-    std::string prompt = "Hello my name is";
-    // number of layers to offload to the GPU
-    int ngl = 99;
-    // number of tokens to predict
-    int n_predict = 32;
-
-    // parse command line arguments
-
-    {
-        int i = 1;
-        for (; i < argc; i++) {
-            if (strcmp(argv[i], "-m") == 0) {
-                if (i + 1 < argc) {
-                    model_path = argv[++i];
-                } else {
-                    print_usage(argc, argv);
-                    return 1;
-                }
-            } else if (strcmp(argv[i], "-n") == 0) {
-                if (i + 1 < argc) {
-                    try {
-                        n_predict = std::stoi(argv[++i]);
-                    } catch (...) {
-                        print_usage(argc, argv);
-                        return 1;
-                    }
-                } else {
-                    print_usage(argc, argv);
-                    return 1;
-                }
-            } else if (strcmp(argv[i], "-ngl") == 0) {
-                if (i + 1 < argc) {
-                    try {
-                        ngl = std::stoi(argv[++i]);
-                    } catch (...) {
-                        print_usage(argc, argv);
-                        return 1;
-                    }
-                } else {
-                    print_usage(argc, argv);
-                    return 1;
-                }
-            } else {
-                // prompt starts here
-                break;
-            }
-        }
-        if (model_path.empty()) {
-            print_usage(argc, argv);
-            return 1;
-        }
-        if (i < argc) {
-            prompt = argv[i++];
-            for (; i < argc; i++) {
-                prompt += " ";
-                prompt += argv[i];
-            }
-        }
-    }
-
-    // load dynamic backends
+int llama_app(const char * model_file,const char * input_prompt,int n_gpu_layers,int n) {
+    std::string model_path=model_file;
+    std::string prompt = input_prompt;
+    int ngl = n_gpu_layers;
+    int n_predict = n;
 
     ggml_backend_load_all();
 

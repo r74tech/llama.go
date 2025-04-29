@@ -3,23 +3,34 @@
 package app
 
 import (
+	"fmt"
 	"github.com/Qitmeer/llama.go/config"
 	"github.com/Qitmeer/llama.go/wrapper"
 )
 
 type App struct {
+	cfg *config.Config
 }
 
-func (a *App) Start(cfg *config.Config) error {
-	err := initLog(cfg)
+func NewApp(cfg *config.Config) *App {
+	return &App{
+		cfg: cfg,
+	}
+}
+
+func (a *App) Start() error {
+	err := initLog(a.cfg)
 	if err != nil {
 		return err
 	}
-	err = cfg.Load()
+	err = a.cfg.Load()
 	if err != nil {
 		return err
 	}
-	return wrapper.LlamaApp()
+	if a.cfg.IsLonely() {
+		return wrapper.LlamaApp(a.cfg)
+	}
+	return fmt.Errorf("The server mode is still under development")
 }
 
 func (a *App) Stop() error {

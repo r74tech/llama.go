@@ -10,7 +10,6 @@ import (
 )
 
 func Run() error {
-	a := App{}
 	app := &cli.App{
 		Name:    "",
 		Version: version.String(),
@@ -23,8 +22,10 @@ func Run() error {
 		Usage:                "Llama",
 		Flags:                config.AppFlags,
 		EnableBashCompletion: true,
+		Commands:             commands(),
 		Action: func(c *cli.Context) error {
-			err := a.Start(config.Conf)
+			a := NewApp(config.Conf)
+			err := a.Start()
 			if err != nil {
 				return err
 			}

@@ -3,7 +3,10 @@
 package config
 
 import (
+	"fmt"
 	"github.com/urfave/cli/v2"
+	"math"
+	"runtime"
 )
 
 const (
@@ -14,7 +17,7 @@ var (
 	Conf = &Config{}
 
 	LogLevel = &cli.StringFlag{
-		Name:        "log_level",
+		Name:        "log-level",
 		Aliases:     []string{"l"},
 		Usage:       "Logging level {trace, debug, info, warn, error}",
 		Value:       defaultLogLevel,
@@ -36,19 +39,63 @@ var (
 		Destination: &Conf.CtxSize,
 	}
 
+	Prompt = &cli.StringFlag{
+		Name:        "prompt",
+		Aliases:     []string{"p"},
+		Usage:       "Provide a prompt directly as a command-line option.",
+		Destination: &Conf.Prompt,
+	}
+
+	NGpuLayers = &cli.IntFlag{
+		Name:        "n-gpu-layers",
+		Aliases:     []string{"ngl"},
+		Usage:       "When compiled with GPU support, this option allows offloading some layers to the GPU for computation. Generally results in increased performance.",
+		Value:       defaultNGpuLayers(),
+		Destination: &Conf.NGpuLayers,
+	}
+
+	NPredict = &cli.IntFlag{
+		Name:        "n-predict",
+		Aliases:     []string{"n"},
+		Usage:       "Set the number of tokens to predict when generating text. Adjusting this value can influence the length of the generated text.",
+		Value:       32,
+		Destination: &Conf.NPredict,
+	}
+
 	AppFlags = []cli.Flag{
 		LogLevel,
 		Model,
 		CtxSize,
+		Prompt,
+		NGpuLayers,
+		NPredict,
 	}
 )
 
 type Config struct {
-	LogLevel string
-	Model    string
-	CtxSize  int
+	LogLevel   string
+	Model      string
+	CtxSize    int
+	Prompt     string
+	NGpuLayers int
+	NPredict   int
+}
+
+func (c *Config) IsLonely() bool {
+	return len(c.Prompt) > 0
 }
 
 func (c *Config) Load() error {
+	if len(c.Model) <= 0 {
+		return fmt.Errorf("No config model")
+	}
 	return nil
+}
+
+func defaultNGpuLayers() int {
+	switch runtime.GOOS {
+	case "darwin":
+		return math.MaxInt
+	}
+	return 0
 }
