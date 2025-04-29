@@ -27,8 +27,13 @@ cmake --build $buildDir --target llama_core -- -j 9
 # go
 go version
 
+GITVER=$(git rev-parse --short=7 HEAD)
+GITDIRTY=$(git diff --quiet || echo '-dirty')
+GITVERSION="${GITVER}${GITDIRTY}"
+versionBuild="github.com/Qitmeer/llama.go/version.Build=dev-${GITVERSION}"
+
 export CGO_ENABLED=1
 export LD_LIBRARY_PATH=./build/lib
-go build -o ./build/bin/llama
+go build -ldflags "-X ${versionBuild}" -o ./build/bin/llama
 
 
