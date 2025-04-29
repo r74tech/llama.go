@@ -99,7 +99,7 @@ func (c *Config) Load() error {
 }
 
 func (c *Config) IsLonely() bool {
-	return len(c.Prompt) > 0 && !c.Interactive
+	return len(c.Prompt) > 0 || c.Interactive
 }
 
 func defaultNGpuLayers() int {

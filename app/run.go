@@ -4,6 +4,8 @@ package app
 
 import (
 	"github.com/Qitmeer/llama.go/config"
+	"github.com/Qitmeer/llama.go/system"
+	"github.com/Qitmeer/llama.go/system/limits"
 	"github.com/Qitmeer/llama.go/version"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -24,10 +26,19 @@ func Run() error {
 		EnableBashCompletion: true,
 		Commands:             commands(),
 		Action: func(c *cli.Context) error {
-			a := NewApp(config.Conf)
-			err := a.Start()
+			err := limits.SetLimits()
 			if err != nil {
 				return err
+			}
+			interrupt := system.InterruptListener()
+
+			a := NewApp(config.Conf)
+			err = a.Start()
+			if err != nil {
+				return err
+			}
+			if !config.Conf.IsLonely() {
+				<-interrupt
 			}
 			return a.Stop()
 		},
