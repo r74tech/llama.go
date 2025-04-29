@@ -20,7 +20,7 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(llama.cpp)
 
 # core
-set(SRCS core.cpp)
+set(SRCS generate.cpp interactive.cpp)
 set(TARGET llama_core)
 
 include_directories(./)

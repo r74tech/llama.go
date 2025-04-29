@@ -1,11 +1,11 @@
-#include "core.h"
+#include "generate.h"
 #include "llama.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
 
-int llama_app(const char * model_file,const char * input_prompt,int n_gpu_layers,int n) {
+int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_layers,int n) {
     std::string model_path=model_file;
     std::string prompt = input_prompt;
     int ngl = n_gpu_layers;

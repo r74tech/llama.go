@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/llama.go/config"
 	"github.com/Qitmeer/llama.go/wrapper"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type App struct {
@@ -23,16 +24,20 @@ func (a *App) Start() error {
 	if err != nil {
 		return err
 	}
+	log.Info("Start App")
 	err = a.cfg.Load()
 	if err != nil {
 		return err
 	}
-	if a.cfg.IsLonely() {
-		return wrapper.LlamaApp(a.cfg)
+	if a.cfg.Interactive {
+		return wrapper.LlamaInteractive(a.cfg)
+	} else if a.cfg.IsLonely() {
+		return wrapper.LlamaGenerate(a.cfg)
 	}
 	return fmt.Errorf("The server mode is still under development")
 }
 
 func (a *App) Stop() error {
+	log.Info("Stop App")
 	return nil
 }

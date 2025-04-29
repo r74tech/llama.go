@@ -62,6 +62,14 @@ var (
 		Destination: &Conf.NPredict,
 	}
 
+	Interactive = &cli.BoolFlag{
+		Name:        "interactive",
+		Aliases:     []string{"i"},
+		Usage:       "Run the program in interactive mode, allowing you to provide input directly and receive real-time responses",
+		Value:       false,
+		Destination: &Conf.Interactive,
+	}
+
 	AppFlags = []cli.Flag{
 		LogLevel,
 		Model,
@@ -69,20 +77,18 @@ var (
 		Prompt,
 		NGpuLayers,
 		NPredict,
+		Interactive,
 	}
 )
 
 type Config struct {
-	LogLevel   string
-	Model      string
-	CtxSize    int
-	Prompt     string
-	NGpuLayers int
-	NPredict   int
-}
-
-func (c *Config) IsLonely() bool {
-	return len(c.Prompt) > 0
+	LogLevel    string
+	Model       string
+	CtxSize     int
+	Prompt      string
+	NGpuLayers  int
+	NPredict    int
+	Interactive bool
 }
 
 func (c *Config) Load() error {
@@ -90,6 +96,10 @@ func (c *Config) Load() error {
 		return fmt.Errorf("No config model")
 	}
 	return nil
+}
+
+func (c *Config) IsLonely() bool {
+	return len(c.Prompt) > 0 && !c.Interactive
 }
 
 func defaultNGpuLayers() int {
