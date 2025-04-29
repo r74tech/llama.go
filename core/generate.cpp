@@ -5,11 +5,13 @@
 #include <string>
 #include <vector>
 
-int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_layers,int n) {
+const char * llama_generate(const char * model_file,const char * input_prompt,int n_gpu_layers,int n) {
     std::string model_path=model_file;
     std::string prompt = input_prompt;
     int ngl = n_gpu_layers;
     int n_predict = n;
+
+    std::string result;
 
     ggml_backend_load_all();
 
@@ -23,7 +25,7 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
 
     if (model == NULL) {
         fprintf(stderr , "%s: error: unable to load model\n" , __func__);
-        return 1;
+        return nullptr;
     }
 
     // tokenize the prompt
@@ -35,7 +37,7 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
     std::vector<llama_token> prompt_tokens(n_prompt);
     if (llama_tokenize(vocab, prompt.c_str(), prompt.size(), prompt_tokens.data(), prompt_tokens.size(), true, true) < 0) {
         fprintf(stderr, "%s: error: failed to tokenize the prompt\n", __func__);
-        return 1;
+        return nullptr;
     }
 
     // initialize the context
@@ -52,7 +54,7 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
 
     if (ctx == NULL) {
         fprintf(stderr , "%s: error: failed to create the llama_context\n" , __func__);
-        return 1;
+        return nullptr;
     }
 
     // initialize the sampler
@@ -70,7 +72,7 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
         int n = llama_token_to_piece(vocab, id, buf, sizeof(buf), 0, true);
         if (n < 0) {
             fprintf(stderr, "%s: error: failed to convert token to piece\n", __func__);
-            return 1;
+            return nullptr;
         }
         std::string s(buf, n);
         printf("%s", s.c_str());
@@ -90,7 +92,7 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
         // evaluate the current batch with the transformer model
         if (llama_decode(ctx, batch)) {
             fprintf(stderr, "%s : failed to eval, return code %d\n", __func__, 1);
-            return 1;
+            return nullptr;
         }
 
         n_pos += batch.n_tokens;
@@ -108,10 +110,12 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
             int n = llama_token_to_piece(vocab, new_token_id, buf, sizeof(buf), 0, true);
             if (n < 0) {
                 fprintf(stderr, "%s: error: failed to convert token to piece\n", __func__);
-                return 1;
+                return nullptr;
             }
             std::string s(buf, n);
             printf("%s", s.c_str());
+            result.append(s);
+
             fflush(stdout);
 
             // prepare the next batch with the sampled token
@@ -137,5 +141,9 @@ int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_l
     llama_free(ctx);
     llama_model_free(model);
 
-    return 0;
+    // process result
+    char* arr = new char[result.size() + 1];
+    std::copy(result.begin(), result.end(), arr);
+    arr[result.size()] = '\0';
+    return arr;
 }

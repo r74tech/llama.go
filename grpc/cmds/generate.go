@@ -27,11 +27,11 @@ func NewGenerate(s *grpc.Server, cfg *config.Config) *Generate {
 
 func (k *Generate) Generate(ctx context.Context, in *proto.GenerateRequest) (*proto.GenerateResponse, error) {
 	k.cfg.Prompt = in.Prompt
-	err := wrapper.LlamaGenerate(k.cfg)
+	content, err := wrapper.LlamaGenerate(k.cfg)
 	if err != nil {
 		return nil, err
 	}
-	return &proto.GenerateResponse{Content: in.Prompt}, nil
+	return &proto.GenerateResponse{Content: content}, nil
 }
 
 func (k *Generate) Client() proto.GenerateClient {

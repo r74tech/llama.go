@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-int llama_generate(const char * model_file,const char * input_prompt,int n_gpu_layers,int n);
+const char * llama_generate(const char * model_file,const char * input_prompt,int n_gpu_layers,int n);
 
 #ifdef __cplusplus
 }

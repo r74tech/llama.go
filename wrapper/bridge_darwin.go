@@ -21,7 +21,7 @@ import (
 	"unsafe"
 )
 
-func LlamaGenerate(cfg *config.Config) error {
+func LlamaGenerate(cfg *config.Config) (string, error) {
 	mp := C.CString(cfg.Model)
 	defer C.free(unsafe.Pointer(mp))
 
@@ -29,10 +29,11 @@ func LlamaGenerate(cfg *config.Config) error {
 	defer C.free(unsafe.Pointer(ip))
 
 	ret := C.llama_generate(mp, ip, C.int(cfg.NGpuLayers), C.int(cfg.NPredict))
-	if ret != 0 {
-		return fmt.Errorf("Llama exit error")
+	if ret == nil {
+		return "", fmt.Errorf("Llama run error")
 	}
-	return nil
+	content := C.GoString(ret)
+	return content, nil
 }
 
 func LlamaInteractive(cfg *config.Config) error {
