@@ -3,20 +3,26 @@
 package app
 
 import (
-	"fmt"
 	"github.com/Qitmeer/llama.go/config"
+	"github.com/Qitmeer/llama.go/grpc"
 	"github.com/Qitmeer/llama.go/wrapper"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/urfave/cli/v2"
 )
 
 type App struct {
-	cfg *config.Config
+	ctx   *cli.Context
+	cfg   *config.Config
+	grSer *grpc.Service
 }
 
-func NewApp(cfg *config.Config) *App {
-	return &App{
-		cfg: cfg,
+func NewApp(ctx *cli.Context, cfg *config.Config) *App {
+	app := &App{
+		ctx:   ctx,
+		cfg:   cfg,
+		grSer: grpc.New(ctx, cfg),
 	}
+	return app
 }
 
 func (a *App) Start() error {
@@ -34,7 +40,7 @@ func (a *App) Start() error {
 	} else if a.cfg.IsLonely() {
 		return wrapper.LlamaGenerate(a.cfg)
 	}
-	return fmt.Errorf("The server mode is still under development")
+	return a.grSer.Start()
 }
 
 func (a *App) Stop() error {

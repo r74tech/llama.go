@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/api/annotations.proto";
+
+service Generate {
+	rpc Generate(GenerateRequest) returns (GenerateResponse) {
+		option (google.api.http) = {
+			post: "/v1/generate"
+            body: "*"
+		};
+	}
+}
+
+message GenerateRequest {
+	string prompt = 1;
+}
+
+message GenerateResponse {
+	string content = 1;
+}

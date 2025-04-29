@@ -32,7 +32,7 @@ func Run() error {
 			}
 			interrupt := system.InterruptListener()
 
-			a := NewApp(config.Conf)
+			a := NewApp(c, config.Conf)
 			err = a.Start()
 			if err != nil {
 				return err

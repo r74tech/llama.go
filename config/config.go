@@ -6,11 +6,18 @@ import (
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"math"
+	"path/filepath"
 	"runtime"
 )
 
 const (
-	defaultLogLevel = "info"
+	defaultLogLevel     = "info"
+	DefaultGrpcEndpoint = "localhost:50051"
+)
+
+var (
+	defaultHomeDir     = "."
+	defaultSwaggerFile = filepath.Join(defaultHomeDir, "swagger.json")
 )
 
 var (
