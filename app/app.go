@@ -11,7 +11,11 @@ type App struct {
 }
 
 func (a *App) Start(cfg *config.Config) error {
-	err := cfg.Load()
+	err := initLog(cfg)
+	if err != nil {
+		return err
+	}
+	err = cfg.Load()
 	if err != nil {
 		return err
 	}

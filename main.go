@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/Qitmeer/llama.go/app"
-	"log"
+	"github.com/ethereum/go-ethereum/log"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -14,7 +14,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	debug.SetGCPercent(20)
 	if err := app.Run(); err != nil {
-		log.Println(err)
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }

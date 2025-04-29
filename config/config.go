@@ -6,8 +6,20 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	defaultLogLevel = "info"
+)
+
 var (
 	Conf = &Config{}
+
+	LogLevel = &cli.StringFlag{
+		Name:        "log_level",
+		Aliases:     []string{"l"},
+		Usage:       "Logging level {trace, debug, info, warn, error}",
+		Value:       defaultLogLevel,
+		Destination: &Conf.LogLevel,
+	}
 
 	Model = &cli.StringFlag{
 		Name:        "model",
@@ -25,14 +37,16 @@ var (
 	}
 
 	AppFlags = []cli.Flag{
+		LogLevel,
 		Model,
 		CtxSize,
 	}
 )
 
 type Config struct {
-	Model   string
-	CtxSize int
+	LogLevel string
+	Model    string
+	CtxSize  int
 }
 
 func (c *Config) Load() error {
