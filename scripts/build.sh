@@ -36,4 +36,7 @@ export CGO_ENABLED=1
 export LD_LIBRARY_PATH=./build/lib
 go build -ldflags "-X ${versionBuild}" -o ./build/bin/llama
 
+echo "Output executable file:${buildDir}/bin/llama"
+./build/bin/llama --version
+
 
