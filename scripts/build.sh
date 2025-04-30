@@ -7,7 +7,7 @@ if [ ! -d "./core" ]; then
     exit 1
 fi
 
-if [ ! -d "./core/llama.cpp" ]; then
+if [ ! -d "./core/llama.cpp/src" ]; then
     git submodule update --init --recursive
     echo "Update llama.cpp"
 fi
