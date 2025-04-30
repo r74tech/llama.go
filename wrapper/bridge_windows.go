@@ -8,7 +8,7 @@ package wrapper
 #cgo CXXFLAGS: -std=c++17
 #cgo CFLAGS: -I${SRCDIR}/../core
 #cgo CXXFLAGS: -I${SRCDIR}/../core
-#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lggml -lggml-base -lggml-cpu -lstdc++
+#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -l:ggml.a -l:ggml-base.a -l:ggml-cpu.a -lstdc++
 #include <stdlib.h>
 #include "core.h"
 */
