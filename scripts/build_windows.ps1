@@ -31,10 +31,10 @@ $GITVERSION = "${GITVER}${GITDIRTY}"
 $versionBuild = "github.com/Qitmeer/llama.go/version.Build=dev-$GITVERSION"
 $env:CGO_ENABLED = "1"
 $env:LD_LIBRARY_PATH = "./build/lib"
-go build -ldflags "-X $versionBuild" -o ./build/bin/llama
+go build -ldflags "-X $versionBuild" -o ./build/bin/llama.exe
 
-Write-Host "Output executable file: $buildDir/bin/llama"
-& "$buildDir/bin/llama" --version
+Write-Host "Output executable file: $buildDir/bin/llama.exe"
+& "$buildDir/bin/llama.exe" --version
 
 
 
