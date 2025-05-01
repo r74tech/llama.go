@@ -2,13 +2,20 @@
 Go bindings to llama.cpp
 
 ### Installation
-***make sure you have `git golang cmake` installed on the system to build.***
+***make sure you have `git golang cmake gcc make` installed on the system to build.***
 * Build from source
-
 ```bash
 ~ git clone https://github.com/Qitmeer/llama.go.git
 ~ cd llama.go
+```
+* macos and linux:
+```bash
 ~ ./scripts/build.sh
+```
+
+* Windows:
+```bash
+~ ./scripts/build_windows.ps1
 ```
 
 ### Get model
