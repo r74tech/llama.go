@@ -19,7 +19,7 @@ Go bindings to llama.cpp
 ```
 
 ### Get model
-* Manually download the model:[Hugging Face Qwen2.5-0.5B](https://huggingface.co/ggml-org/Qwen2.5-Coder-0.5B-Q8_0-GGUF/blob/main/qwen2.5-coder-0.5b-q8_0.gguf)
+* Manually download the model:[Hugging Face Qwen3-8B-GGUF](https://huggingface.co/ggml-org/Qwen3-8B-GGUF/tree/main)
 
 ### Local startup
 
