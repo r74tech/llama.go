@@ -13,6 +13,7 @@ import (
 const (
 	defaultLogLevel     = "info"
 	DefaultGrpcEndpoint = "localhost:50051"
+	defaultNPredict     = 512
 )
 
 var (
@@ -65,7 +66,7 @@ var (
 		Name:        "n-predict",
 		Aliases:     []string{"n"},
 		Usage:       "Set the number of tokens to predict when generating text. Adjusting this value can influence the length of the generated text.",
-		Value:       32,
+		Value:       defaultNPredict,
 		Destination: &Conf.NPredict,
 	}
 
