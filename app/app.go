@@ -38,7 +38,7 @@ func (a *App) Start() error {
 	if a.cfg.Interactive {
 		return wrapper.LlamaInteractive(a.cfg)
 	} else if a.cfg.IsLonely() {
-		content, err := wrapper.LlamaGenerate(a.cfg)
+		content, err := wrapper.LlamaProcess(a.cfg)
 		if err != nil {
 			return err
 		}

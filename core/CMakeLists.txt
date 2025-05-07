@@ -17,15 +17,19 @@ set(GGML_USE_OPENMP OFF)
 set(GGML_OPENMP OFF)
 set(GGML_STATIC ON)
 set(BUILD_SHARED_LIBS OFF)
+set(LLAMA_BUILD_COMMON ON)
+set(LLAMA_CURL OFF)
 add_subdirectory(llama.cpp)
 
 # core
-set(SRCS generate.cpp interactive.cpp)
+set(SRCS generate.cpp interactive.cpp process.cpp)
 set(TARGET llama_core)
 
 include_directories(./)
+include_directories(./llama.cpp/include)
+include_directories(./llama.cpp/common)
 
 link_directories(./../build/bin)
 
 add_library(${TARGET} STATIC ${SRCS})
-target_link_libraries(${TARGET} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${TARGET} PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT})

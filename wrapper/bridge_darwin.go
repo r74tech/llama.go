@@ -9,7 +9,7 @@ package wrapper
 #cgo CFLAGS: -I${SRCDIR}/../core
 #cgo CXXFLAGS: -I${SRCDIR}/../core
 #cgo LDFLAGS: -framework Foundation -framework Metal -framework MetalKit -framework Accelerate -lstdc++
-#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lggml -lggml-base -lggml-cpu -lggml-blas -lggml-metal
+#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -lggml -lggml-base -lggml-cpu -lggml-blas -lggml-metal
 #include <stdlib.h>
 #include "core.h"
 */
@@ -33,6 +33,7 @@ func LlamaGenerate(cfg *config.Config) (string, error) {
 		return "", fmt.Errorf("Llama run error")
 	}
 	content := C.GoString(ret)
+	C.free(unsafe.Pointer(ret))
 	return content, nil
 }
 
@@ -45,4 +46,29 @@ func LlamaInteractive(cfg *config.Config) error {
 		return fmt.Errorf("Llama exit error")
 	}
 	return nil
+}
+
+func LlamaProcess(cfg *config.Config) (string, error) {
+	if cfg.Interactive {
+		return "", fmt.Errorf("Not support")
+	}
+	if len(cfg.Model) <= 0 {
+		return "", fmt.Errorf("No model")
+	}
+	if len(cfg.Prompt) <= 0 {
+		return "", fmt.Errorf("No prompt")
+	}
+	cfgArgs := fmt.Sprintf("llama -no-cnv --model %s --prompt %s --ctx-size %d --n-gpu-layers %d --n-predict %d --seed %d",
+		cfg.Model, cfg.Prompt, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed)
+
+	ca := C.CString(cfgArgs)
+	defer C.free(unsafe.Pointer(ca))
+
+	ret := C.llama_process(ca)
+	if ret == nil {
+		return "", fmt.Errorf("Llama run error")
+	}
+	content := C.GoString(ret)
+	C.free(unsafe.Pointer(ret))
+	return content, nil
 }
