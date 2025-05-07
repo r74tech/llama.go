@@ -58,7 +58,7 @@ var (
 		Name:        "n-gpu-layers",
 		Aliases:     []string{"ngl"},
 		Usage:       "When compiled with GPU support, this option allows offloading some layers to the GPU for computation. Generally results in increased performance.",
-		Value:       defaultNGpuLayers(),
+		Value:       -1,
 		Destination: &Conf.NGpuLayers,
 	}
 
@@ -78,6 +78,14 @@ var (
 		Destination: &Conf.Interactive,
 	}
 
+	Seed = &cli.UintFlag{
+		Name:        "seed",
+		Aliases:     []string{"s"},
+		Usage:       "Set the random number generator (RNG) seed (default: -1, -1 = random seed).",
+		Value:       math.MaxUint32,
+		Destination: &Conf.Seed,
+	}
+
 	AppFlags = []cli.Flag{
 		LogLevel,
 		Model,
@@ -86,6 +94,7 @@ var (
 		NGpuLayers,
 		NPredict,
 		Interactive,
+		Seed,
 	}
 )
 
@@ -97,6 +106,7 @@ type Config struct {
 	NGpuLayers  int
 	NPredict    int
 	Interactive bool
+	Seed        uint
 }
 
 func (c *Config) Load() error {
@@ -113,7 +123,7 @@ func (c *Config) IsLonely() bool {
 func defaultNGpuLayers() int {
 	switch runtime.GOOS {
 	case "darwin":
-		return math.MaxInt
+		return -1
 	}
 	return 0
 }
