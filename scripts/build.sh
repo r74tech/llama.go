@@ -28,12 +28,15 @@ if [[ "$(uname -s)" == "Linux" ]]; then
     if [[ -d "/usr/local/cuda" ]] && command -v nvcc &> /dev/null; then
         echo "Try use CUDA"
         cudaCmake="-DGGML_CUDA=ON"
-        cudaTag="-tags=cuda"
     fi
 fi
 
 cmake -DCMAKE_BUILD_TYPE=Release $cudaCmake -G "Unix Makefiles" -S $coreDir -B $buildDir
 cmake --build $buildDir --target llama_core -- -j 9
+
+if [ -e $buildDir/lib/libggml-cuda.a ]; then
+    cudaTag="-tags=cuda"
+fi
 
 # go
 go version

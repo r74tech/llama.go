@@ -7,8 +7,9 @@ package wrapper
 #cgo CXXFLAGS: -std=c++17
 #cgo CFLAGS: -I${SRCDIR}/../core
 #cgo CXXFLAGS: -I${SRCDIR}/../core
-#cgo linux LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -lggml -lggml-base -lggml-cpu -lstdc++ -lm
-#cgo windows LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -l:ggml.a -l:ggml-base.a -l:ggml-cpu.a -lstdc++
+#cgo linux LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -lggml -lggml-base -lggml-cpu -lggml-cuda -lstdc++ -lm
+#cgo linux LDFLAGS: -L/usr/local/cuda/lib64 -lcudart -lcublas -L/usr/local/cuda/lib64/stubs -lcuda
+#cgo windows LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -l:ggml.a -l:ggml-base.a -l:ggml-cpu.a -l:ggml-cuda.a -lstdc++
 #include <stdlib.h>
 #include "core.h"
 */
