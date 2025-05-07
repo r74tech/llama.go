@@ -21,7 +21,18 @@ buildDir=$(pwd)/build
 echo "core dir:" ${coreDir}
 echo "build dir:" ${buildDir}
 
-cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -S $coreDir -B $buildDir
+# cuda
+cudaTag=""
+cudaCmake=""
+if [[ "$(uname -s)" == "Linux" ]]; then
+    if [[ -d "/usr/local/cuda" ]] && command -v nvcc &> /dev/null; then
+        echo "Try use CUDA"
+        cudaCmake="-DGGML_CUDA=ON"
+        cudaTag="-tags=cuda"
+    fi
+fi
+
+cmake -DCMAKE_BUILD_TYPE=Release $cudaCmake -G "Unix Makefiles" -S $coreDir -B $buildDir
 cmake --build $buildDir --target llama_core -- -j 9
 
 # go
@@ -34,7 +45,8 @@ versionBuild="github.com/Qitmeer/llama.go/version.Build=dev-${GITVERSION}"
 
 export CGO_ENABLED=1
 export LD_LIBRARY_PATH=./build/lib
-go build -ldflags "-X ${versionBuild}" -o ./build/bin/llama
+
+go build $cudaTag -ldflags "-X ${versionBuild}" -o ./build/bin/llama
 
 echo "Output executable file:${buildDir}/bin/llama"
 ./build/bin/llama --version
