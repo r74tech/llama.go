@@ -19,20 +19,7 @@ $buildDir = (Get-Location).Path + "\build"
 Write-Host "core dir: $coreDir"
 Write-Host "build dir: $buildDir"
 
-# cuda
-$nvcc = Get-Command nvcc -ErrorAction SilentlyContinue
-$cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA"
-
-$cudaTag=""
-$cudaCmake=""
-
-if ($nvcc -or (Test-Path "$cudaPath")) {
-    Write-Host "Try use CUDA"
-    $cudaCmake="-DGGML_CUDA=ON"
-    $cudaTag="-tags=cuda"
-}
-
-cmake -DCMAKE_BUILD_TYPE=Release $cudaCmake -G "Unix Makefiles" -S $coreDir -B $buildDir
+cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -S $coreDir -B $buildDir
 cmake --build $buildDir --target llama_core -- -j 9
 
 # Go
@@ -44,7 +31,7 @@ $GITVERSION = "${GITVER}${GITDIRTY}"
 $versionBuild = "github.com/Qitmeer/llama.go/version.Build=dev-$GITVERSION"
 $env:CGO_ENABLED = "1"
 $env:LD_LIBRARY_PATH = "./build/lib"
-go build $cudaTag -ldflags "-X $versionBuild" -o ./build/bin/llama.exe
+go build -ldflags "-X $versionBuild" -o ./build/bin/llama.exe
 
 Write-Host "Output executable file: $buildDir/bin/llama.exe"
 & "$buildDir/bin/llama.exe" --version
