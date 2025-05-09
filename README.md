@@ -7,15 +7,7 @@ Go bindings to llama.cpp
 ```bash
 ~ git clone https://github.com/Qitmeer/llama.go.git
 ~ cd llama.go
-```
-* macos and linux:
-```bash
-~ ./scripts/build.sh
-```
-
-* Windows:
-```bash
-~ ./scripts/build_windows.ps1
+~ make
 ```
 
 ### Get model
