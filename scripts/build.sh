@@ -47,11 +47,11 @@ GITVERSION="${GITVER}${GITDIRTY}"
 versionBuild="github.com/Qitmeer/llama.go/version.Build=dev-${GITVERSION}"
 
 export CGO_ENABLED=1
-export LD_LIBRARY_PATH=./build/lib
-
-go build $cudaTag -ldflags "-X ${versionBuild}" -o ./build/bin/llama
+export LD_LIBRARY_PATH=$buildDir/lib
+cd ./cmd/llama
+go build $cudaTag -ldflags "-X ${versionBuild}" -o $buildDir/bin/llama
 
 echo "Output executable file:${buildDir}/bin/llama"
-./build/bin/llama --version
+$buildDir/bin/llama --version
 
 

@@ -30,8 +30,10 @@ $GITDIRTY = if (git diff --quiet) { "" } else { "-dirty" }
 $GITVERSION = "${GITVER}${GITDIRTY}"
 $versionBuild = "github.com/Qitmeer/llama.go/version.Build=dev-$GITVERSION"
 $env:CGO_ENABLED = "1"
-$env:LD_LIBRARY_PATH = "./build/lib"
-go build -ldflags "-X $versionBuild" -o ./build/bin/llama.exe
+$env:LD_LIBRARY_PATH = "$buildDir/lib"
+
+cd ./cmd/llama
+go build -ldflags "-X $versionBuild" -o $buildDir/bin/llama.exe
 
 Write-Host "Output executable file: $buildDir/bin/llama.exe"
 & "$buildDir/bin/llama.exe" --version
