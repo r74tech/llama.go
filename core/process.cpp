@@ -84,7 +84,7 @@ static void sigint_handler(int signo) {
 }
 #endif
 
-const char * llama_process(const char * args) {
+const char * llama_process(const char * args,const char * input_prompt) {
     std::istringstream iss(args);
     std::vector<std::string> v_args;
     std::string v_a;
@@ -103,7 +103,7 @@ const char * llama_process(const char * args) {
     if (!common_params_parse(argc, v_argv.data(), params, LLAMA_EXAMPLE_MAIN, print_usage)) {
         return nullptr;
     }
-
+    params.prompt=input_prompt;
     common_init();
 
     auto & sparams = params.sampling;
