@@ -17,8 +17,9 @@ import "C"
 
 import (
 	"fmt"
-	"github.com/Qitmeer/llama.go/config"
 	"unsafe"
+
+	"github.com/Qitmeer/llama.go/config"
 )
 
 func LlamaGenerate(cfg *config.Config) (string, error) {
