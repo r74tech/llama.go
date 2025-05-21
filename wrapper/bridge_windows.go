@@ -16,8 +16,9 @@ import "C"
 
 import (
 	"fmt"
-	"github.com/Qitmeer/llama.go/config"
 	"unsafe"
+
+	"github.com/Qitmeer/llama.go/config"
 )
 
 func LlamaGenerate(cfg *config.Config) (string, error) {
@@ -56,13 +57,15 @@ func LlamaProcess(cfg *config.Config) (string, error) {
 	if len(cfg.Prompt) <= 0 {
 		return "", fmt.Errorf("No prompt")
 	}
-	cfgArgs := fmt.Sprintf("llama -no-cnv --model %s --prompt %s --ctx-size %d --n-gpu-layers %d --n-predict %d --seed %d",
-		cfg.Model, cfg.Prompt, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed)
+	ip := C.CString(cfg.Prompt)
+	defer C.free(unsafe.Pointer(ip))
+	cfgArgs := fmt.Sprintf("llama -no-cnv --model %s --ctx-size %d --n-gpu-layers %d --n-predict %d --seed %d",
+		cfg.Model, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed)
 
 	ca := C.CString(cfgArgs)
 	defer C.free(unsafe.Pointer(ca))
 
-	ret := C.llama_process(ca)
+	ret := C.llama_process(ca, ip)
 	if ret == nil {
 		return "", fmt.Errorf("Llama run error")
 	}
