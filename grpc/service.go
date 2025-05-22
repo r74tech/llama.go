@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
-	"sync"
 )
 
 type Service struct {
@@ -17,7 +16,6 @@ type Service struct {
 	gs  *grpc.Server
 	cfg *config.Config
 
-	wg   sync.WaitGroup
 	quit chan struct{}
 
 	hw       *cmds.HelloWorld
@@ -33,7 +31,6 @@ func New(ctx *cli.Context, cfg *config.Config) *Service {
 func (ser *Service) Start() error {
 	log.Info("Start grpc Service...")
 
-	ser.wg.Add(2)
 	go ser.Register()
 	go ser.gateway()
 	return nil
@@ -42,12 +39,9 @@ func (ser *Service) Start() error {
 func (ser *Service) Stop() {
 	ser.gs.Stop()
 	log.Info("Stop grpc Service...")
-	ser.wg.Wait()
-	log.Info("Stoped grpc Service.")
 }
 
 func (ser *Service) Register() {
-	defer ser.wg.Done()
 	log.Info(fmt.Sprintf("Register:%s", config.DefaultGrpcEndpoint))
 	lis, err := net.Listen("tcp", config.DefaultGrpcEndpoint)
 	if err != nil {

@@ -36,8 +36,10 @@ func (a *App) Start() error {
 		return err
 	}
 	if a.cfg.Interactive {
+		log.Debug("Run Interactive")
 		return wrapper.LlamaInteractive(a.cfg)
 	} else if a.cfg.IsLonely() {
+		log.Debug("Run Lonely")
 		content, err := wrapper.LlamaProcess(a.cfg)
 		if err != nil {
 			return err
@@ -50,5 +52,8 @@ func (a *App) Start() error {
 
 func (a *App) Stop() error {
 	log.Info("Stop App")
+	if !a.cfg.Interactive && !a.cfg.IsLonely() {
+		a.grSer.Stop()
+	}
 	return nil
 }
