@@ -420,22 +420,6 @@ const char * llama_process(const char * args,const char * input_prompt) {
         LOG_INF("\n");
     }
 
-    // ctrl+C handling
-    {
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
-        struct sigaction sigint_action;
-        sigint_action.sa_handler = sigint_handler;
-        sigemptyset (&sigint_action.sa_mask);
-        sigint_action.sa_flags = 0;
-        sigaction(SIGINT, &sigint_action, NULL);
-#elif defined (_WIN32)
-        auto console_ctrl_handler = +[](DWORD ctrl_type) -> BOOL {
-            return (ctrl_type == CTRL_C_EVENT) ? (sigint_handler(SIGINT), true) : false;
-        };
-        SetConsoleCtrlHandler(reinterpret_cast<PHANDLER_ROUTINE>(console_ctrl_handler), true);
-#endif
-    }
-
     if (params.interactive) {
         LOG_INF("%s: interactive mode on.\n", __func__);
 
@@ -995,5 +979,6 @@ const char * llama_process(const char * args,const char * input_prompt) {
     char* arr = new char[result.size() + 1];
     std::copy(result.begin(), result.end(), arr);
     arr[result.size()] = '\0';
+
     return arr;
 }

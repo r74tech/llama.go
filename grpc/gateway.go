@@ -13,8 +13,6 @@ import (
 const DefaultGatewayAddr = "localhost:8081"
 
 func (ser *Service) gateway() {
-	defer ser.wg.Done()
-
 	ctx, cancel := context.WithCancel(ser.ctx.Context)
 	defer cancel()
 

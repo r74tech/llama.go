@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 	"math"
 	"path/filepath"
@@ -110,6 +111,7 @@ type Config struct {
 }
 
 func (c *Config) Load() error {
+	log.Debug("Try to load config")
 	if len(c.Model) <= 0 {
 		return fmt.Errorf("No config model")
 	}
