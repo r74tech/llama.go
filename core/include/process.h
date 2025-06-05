@@ -4,7 +4,9 @@
 extern "C" {
 #endif
 
-const char * llama_process(const char * args,const char * input_prompt);
+    bool llama_start(const char * args);
+    bool llama_stop();
+    const char * llama_chat(const char * input_prompt);
 
 #ifdef __cplusplus
 }
