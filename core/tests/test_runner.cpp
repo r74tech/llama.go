@@ -1,12 +1,25 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 
 #include "process.h"
 
 int main() {
-    std::string args="llama-cli -m ./qwen2.5-0.5b-q8_0.gguf -no-cnv --seed 0";
-    bool ret=llama_start(args.c_str());
+    const char* env_model = "LLAMA_TEST_MODEL";
+    const char* model = std::getenv(env_model);
+
+    if (model == nullptr) {
+        std::cerr << "error：can't find " << env_model << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "env: " << env_model << "=" << model << std::endl;
+
+    std::stringstream ss;
+    ss << "test_runner -m " << model << " -no-cnv --seed 0";
+
+    bool ret=llama_start(ss.str().c_str());
     if (!ret) {
         return 1;
     }
@@ -21,7 +34,7 @@ int main() {
 
     ret=llama_stop();
     if (!ret) {
-        return 1;
+        return EXIT_FAILURE;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
