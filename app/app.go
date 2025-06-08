@@ -8,12 +8,15 @@ import (
 	"github.com/Qitmeer/llama.go/wrapper"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
+	"sync"
+	"time"
 )
 
 type App struct {
 	ctx   *cli.Context
 	cfg   *config.Config
 	grSer *grpc.Service
+	wg    sync.WaitGroup
 }
 
 func NewApp(ctx *cli.Context, cfg *config.Config) *App {
@@ -39,15 +42,30 @@ func (a *App) Start() error {
 		log.Debug("Run Interactive")
 		return wrapper.LlamaInteractive(a.cfg)
 	} else if a.cfg.IsLonely() {
-		log.Debug("Run Lonely")
-		content, err := wrapper.LlamaProcess(a.cfg)
+		log.Debug("Not support")
+		a.wg.Add(1)
+		go a.startLLama()
+		time.Sleep(time.Second)
+		content, err := wrapper.LlamaProcess(a.cfg.Prompt)
 		if err != nil {
 			return err
 		}
 		log.Info(content)
 		return nil
+	} else {
+		a.wg.Add(1)
+		go a.startLLama()
 	}
 	return a.grSer.Start()
+}
+
+func (a *App) startLLama() {
+	defer a.wg.Done()
+
+	err := wrapper.LlamaStart(a.cfg)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func (a *App) Stop() error {
@@ -55,5 +73,12 @@ func (a *App) Stop() error {
 	if !a.cfg.Interactive && !a.cfg.IsLonely() {
 		a.grSer.Stop()
 	}
+	if !a.cfg.Interactive {
+		err := wrapper.LlamaStop()
+		if err != nil {
+			log.Error(err.Error())
+		}
+	}
+	a.wg.Wait()
 	return nil
 }

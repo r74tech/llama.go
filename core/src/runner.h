@@ -15,13 +15,14 @@ private:
     llama_model             * m_model;
     common_sampler          * m_smpl;
     common_params           * m_params;
+    std::string               m_prompt;
 
     std::vector<llama_token> * m_input_tokens;
     std::ostringstream       * m_output_ss;
     std::vector<llama_token> * m_output_tokens;
 
 public:
-    Runner(int id,const std::vector<std::string>& args,bool async= false);
+    Runner(int id,const std::vector<std::string>& args,bool async= false,const std::string& prompt="");
     ~Runner();
     bool start();
     bool stop();

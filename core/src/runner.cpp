@@ -43,8 +43,8 @@ static bool file_is_empty(const std::string & path) {
     return f.tellg() == 0;
 }
 
-Runner::Runner(int id,const std::vector<std::string>& args,bool async) :
-    m_id(id),m_args(args),m_async(async),
+Runner::Runner(int id,const std::vector<std::string>& args,bool async,const std::string& prompt) :
+    m_id(id),m_args(args),m_async(async),m_prompt(prompt),
     m_params(nullptr),m_model(nullptr),m_smpl(nullptr),m_input_tokens(nullptr),m_output_ss(nullptr),m_output_tokens(nullptr) {
     std::cout << "Runner Constructor:"<<id<<" args.size="<<args.size()<< std::endl;
 }
@@ -68,6 +68,7 @@ bool Runner::start() {
     int argc = v_argv.size();
 
     common_params params;
+    params.prompt=m_prompt;
     m_params = &params;
     if (!common_params_parse(argc, v_argv.data(), params, LLAMA_EXAMPLE_MAIN, print_usage)) {
         return false;
