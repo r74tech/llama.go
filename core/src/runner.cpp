@@ -43,8 +43,8 @@ static bool file_is_empty(const std::string & path) {
     return f.tellg() == 0;
 }
 
-Runner::Runner(int id,const std::vector<std::string>& args) :
-    m_id(id),m_args(args),m_async(false),
+Runner::Runner(int id,const std::vector<std::string>& args,bool async) :
+    m_id(id),m_args(args),m_async(async),
     m_params(nullptr),m_model(nullptr),m_smpl(nullptr),m_input_tokens(nullptr),m_output_ss(nullptr),m_output_tokens(nullptr) {
     std::cout << "Runner Constructor:"<<id<<" args.size="<<args.size()<< std::endl;
 }
@@ -531,6 +531,8 @@ bool Runner::start() {
         embd_inp.push_back(decoder_start_token_id);
     }
 
+    EventProcessor::Event event;
+
     while ((n_remain != 0 && !is_antiprompt) || params.interactive) {
         // predict
         if (!embd.empty()) {
@@ -823,10 +825,11 @@ bool Runner::start() {
                 console::set_display(console::user_input);
                 display = params.display_prompt;
 
-                if (!getPrompt(buffer)) {
+                if (!getPrompt(event)) {
                     break;
                 }
-
+                buffer=event.data;
+                event.data="";
                 // done taking input, reset color
                 console::set_display(console::reset);
                 display = true;
@@ -951,7 +954,7 @@ bool Runner::stop() {
     std::cout << "Runner Stop:"<<m_id<< std::endl;
 
     m_running = false;
-    m_queue.stop();
+    m_eprocessor.stop();
 
     return true;
 }
@@ -963,9 +966,7 @@ const std::string Runner::generate(const std::string& prompt) {
     }
     std::cout << "Runner Chat:"<<m_id<< std::endl;
 
-    m_queue.enqueue(prompt);
-
-    return m_output_ss->str();
+    return m_eprocessor.enqueue(prompt);
 }
 
 int Runner::getID() {
@@ -976,19 +977,29 @@ bool Runner::isRunning() {
     return m_running;
 }
 
-bool Runner::getPrompt(std::string &prompt) {
+bool Runner::getPrompt(EventProcessor::Event& event) {
     if (!isRunning()) {
         return false;
     }
     if (m_async) {
-        m_queue.dequeue(prompt);
-        return true;
+        if (!m_output_ss->str().empty()) {
+            try {
+                event.result.set_value(m_output_ss->str());
+            } catch (...) {
+                event.result.set_exception(std::current_exception());
+            }
+            m_output_ss->clear();
+        }
+        return m_eprocessor.dequeue(event);
     }
     std::string line;
+    std::string buffer;
     bool another_line = true;
     do {
         another_line = console::readline(line, m_params->multiline_input);
-        prompt += line;
+        buffer += line;
     } while (another_line);
+
+    event.data=buffer;
     return true;
 }

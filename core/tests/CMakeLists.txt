@@ -1,9 +1,9 @@
 enable_testing()
 
-set(SRCS test_runner.cpp)
-set(TARGET test_runner)
+add_executable(test_runner test_runner.cpp)
+target_link_libraries(test_runner PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT} llama_core)
+add_test(NAME RunnerTest COMMAND test_runner)
 
-add_executable(${TARGET} ${SRCS})
-target_link_libraries(${TARGET} PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT} llama_core)
-
-add_test(NAME RunnerTest COMMAND ${TARGET})
+add_executable(test_runner_gen test_runner_gen.cpp)
+target_link_libraries(test_runner_gen PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT} llama_core)
+add_test(NAME RunnerTestGen COMMAND test_runner_gen)

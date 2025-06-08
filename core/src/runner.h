@@ -1,13 +1,13 @@
 #pragma once
 
-#include "safe_queue.h"
+#include "event_processor.h"
 #include "sampling.h"
 
 class Runner {
 private:
     int m_id;
     const std::vector<std::string> m_args;
-    SafeQueue m_queue;
+    EventProcessor m_eprocessor;
     std::atomic<bool> m_running;
     bool m_async;
 
@@ -21,7 +21,7 @@ private:
     std::vector<llama_token> * m_output_tokens;
 
 public:
-    Runner(int id,const std::vector<std::string>& args);
+    Runner(int id,const std::vector<std::string>& args,bool async= false);
     ~Runner();
     bool start();
     bool stop();
@@ -29,5 +29,5 @@ public:
     int getID();
     bool isRunning();
 
-    bool getPrompt(std::string& prompt);
+    bool getPrompt(EventProcessor::Event& event);
 };

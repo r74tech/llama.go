@@ -5,7 +5,7 @@
 static Runner *g_runner;
 static int g_idx=0;
 
-bool llama_start(const char * args) {
+bool llama_start(const char * args,bool async) {
     if (g_runner != nullptr) {
         LOG("Delete last runner: id=%d\n",g_runner->getID());
         delete g_runner;
@@ -18,7 +18,7 @@ bool llama_start(const char * args) {
         v_args.push_back(v_a);
     }
 
-    g_runner=new Runner(g_idx,v_args);
+    g_runner=new Runner(g_idx,v_args,async);
     g_idx++;
     return g_runner->start();
 }

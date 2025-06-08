@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-    bool llama_start(const char * args);
+    bool llama_start(const char * args,bool async);
     bool llama_stop();
     const char * llama_gen(const char * prompt);
 
