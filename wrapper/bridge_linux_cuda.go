@@ -14,6 +14,13 @@ package wrapper
 */
 import "C"
 
+import (
+	"fmt"
+	"unsafe"
+
+	"github.com/Qitmeer/llama.go/config"
+)
+
 func LlamaGenerate(cfg *config.Config) (string, error) {
 	mp := C.CString(cfg.Model)
 	defer C.free(unsafe.Pointer(mp))
