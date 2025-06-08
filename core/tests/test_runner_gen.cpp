@@ -34,7 +34,13 @@ int main() {
         if (content.empty()) {
             return;
         }
+        std::cout<<"Response:"<<content<<std::endl;
 
+        prompt="what color is water";
+        content = llama_gen(prompt.c_str());
+        if (content.empty()) {
+            return;
+        }
         std::cout<<"Response:"<<content<<std::endl;
 
         bool ret =llama_stop();
