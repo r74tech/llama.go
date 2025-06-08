@@ -6,7 +6,7 @@ extern "C" {
 
     bool llama_start(const char * args);
     bool llama_stop();
-    const char * llama_chat(const char * input_prompt);
+    const char * llama_gen(const char * prompt);
 
 #ifdef __cplusplus
 }

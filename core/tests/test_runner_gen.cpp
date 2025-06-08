@@ -17,9 +17,14 @@ int main() {
     std::cout << "env: " << env_model << "=" << model << std::endl;
 
     std::stringstream ss;
-    ss << "test_runner -m " << model << " -i --seed 0";
+    ss << "test_runner -m " << model << " -no-cnv --seed 0";
 
     bool ret=llama_start(ss.str().c_str());
+    if (!ret) {
+        return 1;
+    }
+    std::string prompt="why the sky is blue";
+    ret=llama_gen(prompt.c_str());
     if (!ret) {
         return 1;
     }

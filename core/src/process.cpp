@@ -7,7 +7,7 @@ static int g_idx=0;
 
 bool llama_start(const char * args) {
     if (g_runner != nullptr) {
-        LOG("Delete last runner: id=%d\n",g_runner->GetID());
+        LOG("Delete last runner: id=%d\n",g_runner->getID());
         delete g_runner;
         g_runner= nullptr;
     }
@@ -20,7 +20,7 @@ bool llama_start(const char * args) {
 
     g_runner=new Runner(g_idx,v_args);
     g_idx++;
-    return g_runner->Start();
+    return g_runner->start();
 }
 
 bool llama_stop() {
@@ -28,26 +28,22 @@ bool llama_stop() {
         LOG("Runner is already delete\n");
         return true;
     }
-    bool ret=g_runner->Stop();
-    LOG("Delete last runner: id=%d\n",g_runner->GetID());
+    bool ret=g_runner->stop();
+    LOG("Delete last runner: id=%d\n",g_runner->getID());
     delete g_runner;
     g_runner= nullptr;
     return ret;
 }
 
-const char * llama_chat(const char * input_prompt) {
+const char * llama_gen(const char * prompt) {
     if (g_runner == nullptr) {
         LOG_ERR("Not init llama\n");
         return "";
     }
-    std::string result = g_runner->Chat(std::string(input_prompt));
+    std::string result = g_runner->generate(std::string(prompt));
     char* arr = new char[result.size() + 1];
     std::copy(result.begin(), result.end(), arr);
     arr[result.size()] = '\0';
 
     return arr;
-}
-
-const char * llama_process(const char * args,const char * input_prompt) {
-    return nullptr;
 }
