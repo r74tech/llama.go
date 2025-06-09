@@ -26,8 +26,7 @@ func NewGenerate(s *grpc.Server, cfg *config.Config) *Generate {
 }
 
 func (k *Generate) Generate(ctx context.Context, in *proto.GenerateRequest) (*proto.GenerateResponse, error) {
-	k.cfg.Prompt = in.Prompt
-	content, err := wrapper.LlamaProcess(k.cfg)
+	content, err := wrapper.LlamaProcess(in.Prompt)
 	if err != nil {
 		return nil, err
 	}

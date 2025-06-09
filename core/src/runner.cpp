@@ -1,4 +1,6 @@
-#include "process.h"
+#include "runner.h"
+#include <iostream>
+
 #include "arg.h"
 #include "common.h"
 #include "console.h"
@@ -16,31 +18,9 @@
 #include <string>
 #include <vector>
 
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
-#include <signal.h>
-#include <unistd.h>
-#elif defined (_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <signal.h>
-#endif
-
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
-
-static llama_context           ** g_ctx;
-static llama_model             ** g_model;
-static common_sampler          ** g_smpl;
-static common_params            * g_params;
-static std::vector<llama_token> * g_input_tokens;
-static std::ostringstream       * g_output_ss;
-static std::vector<llama_token> * g_output_tokens;
-static bool is_interacting  = false;
-static bool need_insert_eot = false;
 
 static void print_usage(int argc, char ** argv) {
     (void) argc;
@@ -63,47 +43,36 @@ static bool file_is_empty(const std::string & path) {
     return f.tellg() == 0;
 }
 
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__)) || defined (_WIN32)
-static void sigint_handler(int signo) {
-    if (signo == SIGINT) {
-        if (!is_interacting && g_params->interactive) {
-            is_interacting  = true;
-            need_insert_eot = true;
-        } else {
-            console::cleanup();
-            LOG("\n");
-            common_perf_print(*g_ctx, *g_smpl);
-
-            // make sure all logs are flushed
-            LOG("Interrupted by user\n");
-            common_log_pause(common_log_main());
-
-            _exit(130);
-        }
-    }
+Runner::Runner(int id,const std::vector<std::string>& args,bool async,const std::string& prompt) :
+    m_id(id),m_args(args),m_async(async),m_prompt(prompt),
+    m_params(nullptr),m_model(nullptr),m_smpl(nullptr),m_input_tokens(nullptr),m_output_ss(nullptr),m_output_tokens(nullptr) {
+    std::cout << "Runner Constructor:"<<id<<" args.size="<<args.size()<< std::endl;
 }
-#endif
 
-const char * llama_process(const char * args,const char * input_prompt) {
-    std::istringstream iss(args);
-    std::vector<std::string> v_args;
-    std::string v_a;
-    while (iss >> v_a) {
-        v_args.push_back(v_a);
+Runner::~Runner() {
+    std::cout << "Runner Destructor:"<<m_id<< std::endl;
+}
+
+bool Runner::start() {
+    if (isRunning()) {
+        std::cout << "Already Start:"<<m_id<< std::endl;
+        return false;
     }
+    std::cout << "Runner Start:"<<m_id<< std::endl;
+    m_running=true;
 
     std::vector<char*> v_argv;
-    for (auto& t : v_args) {
+    for (auto& t : m_args) {
         v_argv.push_back(const_cast<char*>(t.c_str()));
     }
     int argc = v_argv.size();
 
     common_params params;
-    g_params = &params;
+    params.prompt=m_prompt;
+    m_params = &params;
     if (!common_params_parse(argc, v_argv.data(), params, LLAMA_EXAMPLE_MAIN, print_usage)) {
-        return nullptr;
+        return false;
     }
-    params.prompt=input_prompt;
     common_init();
 
     auto & sparams = params.sampling;
@@ -118,7 +87,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
         LOG_ERR("%s: please use the 'perplexity' tool for perplexity calculations\n", __func__);
         LOG_ERR("************\n\n");
 
-        return nullptr;
+        return false;
     }
 
     if (params.embedding) {
@@ -126,7 +95,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
         LOG_ERR("%s: please use the 'embedding' tool for embedding calculations\n", __func__);
         LOG_ERR("************\n\n");
 
-        return nullptr;
+        return false;
     }
 
     if (params.n_ctx != 0 && params.n_ctx < 8) {
@@ -151,9 +120,9 @@ const char * llama_process(const char * args,const char * input_prompt) {
     llama_context * ctx = nullptr;
     common_sampler * smpl = nullptr;
 
-    g_model = &model;
-    g_ctx = &ctx;
-    g_smpl = &smpl;
+    m_model = model;
+    m_ctx = ctx;
+    m_smpl = smpl;
 
     std::vector<common_chat_msg> chat_msgs;
 
@@ -166,7 +135,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
 
     if (model == NULL) {
         LOG_ERR("%s: error: unable to load model\n", __func__);
-        return nullptr;
+        return false;
     }
 
     const llama_vocab * vocab = llama_model_get_vocab(model);
@@ -190,7 +159,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
         threadpool_batch = ggml_threadpool_new_fn(&tpp_batch);
         if (!threadpool_batch) {
             LOG_ERR("%s: batch threadpool create failed : n_threads %d\n", __func__, tpp_batch.n_threads);
-            return nullptr;
+            return false;
         }
 
         // Start the non-batch threadpool in the paused state
@@ -200,7 +169,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
     struct ggml_threadpool * threadpool = ggml_threadpool_new_fn(&tpp);
     if (!threadpool) {
         LOG_ERR("%s: threadpool create failed : n_threads %d\n", __func__, tpp.n_threads);
-        return nullptr;
+        return false;
     }
 
     llama_attach_threadpool(ctx, threadpool, threadpool_batch);
@@ -263,7 +232,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
             size_t n_token_count_out = 0;
             if (!llama_state_load_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.capacity(), &n_token_count_out)) {
                 LOG_ERR("%s: failed to load session file '%s'\n", __func__, path_session.c_str());
-                return nullptr;
+                return false;
             }
             session_tokens.resize(n_token_count_out);
             LOG_INF("%s: loaded a session with prompt size of %d tokens\n", __func__, (int)session_tokens.size());
@@ -280,11 +249,11 @@ const char * llama_process(const char * args,const char * input_prompt) {
     std::vector<llama_token> embd_inp;
 
     bool waiting_for_first_input = false;
-    auto chat_add_and_format = [&chat_msgs, &chat_templates](const std::string & role, const std::string & content) {
+    auto chat_add_and_format = [&chat_msgs, &chat_templates,this](const std::string & role, const std::string & content) {
         common_chat_msg new_msg;
         new_msg.role = role;
         new_msg.content = content;
-        auto formatted = common_chat_format_single(chat_templates.get(), chat_msgs, new_msg, role == "user", g_params->use_jinja);
+        auto formatted = common_chat_format_single(chat_templates.get(), chat_msgs, new_msg, role == "user", m_params->use_jinja);
         chat_msgs.push_back(new_msg);
         LOG_DBG("formatted: '%s'\n", formatted.c_str());
         return formatted;
@@ -336,14 +305,14 @@ const char * llama_process(const char * args,const char * input_prompt) {
             LOG_WRN("embd_inp was considered empty and bos was added: %s\n", string_from(ctx, embd_inp).c_str());
         } else {
             LOG_ERR("input is empty\n");
-            return nullptr;
+            return false;
         }
     }
 
     // Tokenize negative prompt
     if ((int) embd_inp.size() > n_ctx - 4) {
         LOG_ERR("%s: prompt is too long (%d tokens, max %d)\n", __func__, (int) embd_inp.size(), n_ctx - 4);
-        return nullptr;
+        return false;
     }
 
     // debug message about similarity of saved session, if applicable
@@ -463,7 +432,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
     smpl = common_sampler_init(model, sparams);
     if (!smpl) {
         LOG_ERR("%s: failed to initialize sampling subsystem\n", __func__);
-        return nullptr;
+        return false;
     }
 
     LOG_INF("sampler seed: %u\n",     common_sampler_get_seed(smpl));
@@ -487,6 +456,9 @@ const char * llama_process(const char * args,const char * input_prompt) {
         LOG_INF("self-extend: n_ctx_train = %d, grp_attn_n = %d, grp_attn_w = %d\n", n_ctx_train, ga_n, ga_w);
     }
     LOG_INF("\n");
+
+    bool is_interacting  = false;
+    bool need_insert_eot = false;
 
     if (params.interactive) {
         const char * control_message;
@@ -521,9 +493,9 @@ const char * llama_process(const char * args,const char * input_prompt) {
     int n_consumed         = 0;
     int n_session_consumed = 0;
 
-    std::vector<int>   input_tokens;  g_input_tokens  = &input_tokens;
-    std::vector<int>   output_tokens; g_output_tokens = &output_tokens;
-    std::ostringstream output_ss;     g_output_ss     = &output_ss;
+    std::vector<int>   input_tokens;  m_input_tokens  = &input_tokens;
+    std::vector<int>   output_tokens; m_output_tokens = &output_tokens;
+    std::ostringstream output_ss;     m_output_ss     = &output_ss;
     std::ostringstream assistant_ss; // for storing current assistant message, used in conversation mode
 
     // the first thing we will do is to output the prompt, so set color accordingly
@@ -548,7 +520,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
 
         if (llama_encode(ctx, llama_batch_get_one(enc_input_buf, enc_input_size))) {
             LOG_ERR("%s : failed to eval\n", __func__);
-            return nullptr;
+            return false;
         }
 
         llama_token decoder_start_token_id = llama_model_decoder_start_token(model);
@@ -559,6 +531,8 @@ const char * llama_process(const char * args,const char * input_prompt) {
         embd_inp.clear();
         embd_inp.push_back(decoder_start_token_id);
     }
+
+    EventProcessor::Event event;
 
     while ((n_remain != 0 && !is_antiprompt) || params.interactive) {
         // predict
@@ -668,7 +642,7 @@ const char * llama_process(const char * args,const char * input_prompt) {
 
                 if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval))) {
                     LOG_ERR("%s : failed to eval\n", __func__);
-                    return nullptr;
+                    return false;
                 }
 
                 n_past += n_eval;
@@ -852,13 +826,11 @@ const char * llama_process(const char * args,const char * input_prompt) {
                 console::set_display(console::user_input);
                 display = params.display_prompt;
 
-                std::string line;
-                bool another_line = true;
-                do {
-                    another_line = console::readline(line, params.multiline_input);
-                    buffer += line;
-                } while (another_line);
-
+                if (!getPrompt(event)) {
+                    break;
+                }
+                buffer=event.data;
+                event.data="";
                 // done taking input, reset color
                 console::set_display(console::reset);
                 display = true;
@@ -958,7 +930,6 @@ const char * llama_process(const char * args,const char * input_prompt) {
             is_interacting = true;
         }
     }
-
     if (!path_session.empty() && params.prompt_cache_all && !params.prompt_cache_ro) {
         LOG("\n%s: saving final output to session file '%s'\n", __func__, path_session.c_str());
         llama_state_save_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.size());
@@ -973,12 +944,63 @@ const char * llama_process(const char * args,const char * input_prompt) {
 
     ggml_threadpool_free_fn(threadpool);
     ggml_threadpool_free_fn(threadpool_batch);
+    return true;
+}
 
-    // process result
-    std::string result=g_output_ss->str();
-    char* arr = new char[result.size() + 1];
-    std::copy(result.begin(), result.end(), arr);
-    arr[result.size()] = '\0';
+bool Runner::stop() {
+    if (!isRunning()) {
+        std::cout << "No Start:"<<m_id<< std::endl;
+        return false;
+    }
+    std::cout << "Runner Stop:"<<m_id<< std::endl;
 
-    return arr;
+    m_running = false;
+    m_eprocessor.stop();
+
+    return true;
+}
+
+const std::string Runner::generate(const std::string& prompt) {
+    if (!isRunning()) {
+        std::cout << "No Start:"<<m_id<< std::endl;
+        return "";
+    }
+    std::cout << "Runner Chat:"<<m_id<< std::endl;
+
+    return m_eprocessor.enqueue(prompt);
+}
+
+int Runner::getID() {
+    return m_id;
+}
+
+bool Runner::isRunning() {
+    return m_running;
+}
+
+bool Runner::getPrompt(EventProcessor::Event& event) {
+    if (!isRunning()) {
+        return false;
+    }
+    if (m_async) {
+        if (!m_output_ss->str().empty()) {
+            try {
+                event.result.set_value(m_output_ss->str());
+            } catch (...) {
+                event.result.set_exception(std::current_exception());
+            }
+            m_output_ss->clear();
+        }
+        return m_eprocessor.dequeue(event);
+    }
+    std::string line;
+    std::string buffer;
+    bool another_line = true;
+    do {
+        another_line = console::readline(line, m_params->multiline_input);
+        buffer += line;
+    } while (another_line);
+
+    event.data=buffer;
+    return true;
 }
