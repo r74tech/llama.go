@@ -989,6 +989,7 @@ bool Runner::getPrompt(EventProcessor::Event& event) {
             } catch (...) {
                 event.result.set_exception(std::current_exception());
             }
+            m_output_ss->str("");
             m_output_ss->clear();
         }
         return m_eprocessor.dequeue(event);
