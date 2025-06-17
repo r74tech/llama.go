@@ -105,3 +105,29 @@ func LlamaStop() error {
 	}
 	return nil
 }
+
+func LlamaEmbedding(cfg *config.Config) error {
+	if len(cfg.Model) <= 0 {
+		return fmt.Errorf("No model")
+	}
+	if len(cfg.Prompt) <= 0 {
+		return fmt.Errorf("No prompt")
+	}
+	ip := C.CString(cfg.Prompt)
+	defer C.free(unsafe.Pointer(ip))
+
+	cfgArgs := fmt.Sprintf("llama --model %s --ctx-size %d --n-gpu-layers %d --n-predict %d --seed %d --pooling %s --embd-normalize %d",
+		cfg.Model, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed, cfg.Pooling, cfg.EmbdNormalize)
+
+	if len(cfg.EmbdOutputFormat) > 0 {
+		cfgArgs = fmt.Sprintf("%s --embd-output-format %s", cfgArgs, cfg.EmbdOutputFormat)
+	}
+	ca := C.CString(cfgArgs)
+	defer C.free(unsafe.Pointer(ca))
+
+	ret := C.llama_embedding(ca, ip)
+	if ret != 0 {
+		return fmt.Errorf("Llama start error")
+	}
+	return nil
+}
