@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-int llama_embedding(const char * args,const char * prompt);
+const char * llama_embedding(const char * args,const char * prompt);
 
 #ifdef __cplusplus
 }
