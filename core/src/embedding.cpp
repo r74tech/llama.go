@@ -9,6 +9,9 @@
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
 
+#include <sstream>
+#include <iomanip>
+
 static std::vector<std::string> split_lines(const std::string & s, const std::string & separator = "\n") {
     std::vector<std::string> lines;
     size_t start = 0;
@@ -78,7 +81,7 @@ static void batch_decode(llama_context * ctx, llama_batch & batch, float * outpu
     }
 }
 
-int llama_embedding(const char * args,const char * prompt) {
+const char * llama_embedding(const char * args,const char * prompt) {
     std::istringstream iss(args);
     std::vector<std::string> v_args;
     std::string v_a;
@@ -95,7 +98,7 @@ int llama_embedding(const char * args,const char * prompt) {
     params.prompt=prompt;
 
     if (!common_params_parse(argc, v_argv.data(), params, LLAMA_EXAMPLE_EMBEDDING)) {
-        return 1;
+        return "";
     }
 
     common_init();
@@ -122,7 +125,7 @@ int llama_embedding(const char * args,const char * prompt) {
 
     if (model == NULL) {
         LOG_ERR("%s: unable to load model\n", __func__);
-        return 1;
+        return "";
     }
 
     const llama_vocab * vocab = llama_model_get_vocab(model);
@@ -134,7 +137,7 @@ int llama_embedding(const char * args,const char * prompt) {
 
     if (llama_model_has_encoder(model) && llama_model_has_decoder(model)) {
         LOG_ERR("%s: computing embeddings in encoder-decoder models is not supported\n", __func__);
-        return 1;
+        return "";
     }
 
     if (n_ctx > n_ctx_train) {
@@ -161,7 +164,7 @@ int llama_embedding(const char * args,const char * prompt) {
         if (inp.size() > n_batch) {
             LOG_ERR("%s: number of tokens in input line (%lld) exceeds batch size (%lld), increase batch size and re-run\n",
                     __func__, (long long int) inp.size(), (long long int) n_batch);
-            return 1;
+            return "";
         }
         inputs.push_back(inp);
     }
@@ -233,63 +236,65 @@ int llama_embedding(const char * args,const char * prompt) {
     float * out = emb + e * n_embd;
     batch_decode(ctx, batch, out, s, n_embd, params.embd_normalize);
 
+    std::ostringstream result;
+
     if (params.embd_out.empty()) {
-        LOG("\n");
 
         if (pooling_type == LLAMA_POOLING_TYPE_NONE) {
             for (int j = 0; j < n_embd_count; j++) {
-                LOG("embedding %d: ", j);
+                result<<"embedding "<<j<<": ";
                 for (int i = 0; i < std::min(3, n_embd); i++) {
                     if (params.embd_normalize == 0) {
-                        LOG("%6.0f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(0) << std::setw(6);
                     } else {
-                        LOG("%9.6f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(6) << std::setw(9);
                     }
+                    result<< emb[j * n_embd + i];
                 }
-                LOG(" ... ");
+                result<<" ... ";
                 for (int i = n_embd - 3; i < n_embd; i++) {
                     if (params.embd_normalize == 0) {
-                        LOG("%6.0f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(0) << std::setw(6);
                     } else {
-                        LOG("%9.6f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(6) << std::setw(9);
                     }
+                    result<< emb[j * n_embd + i];
                 }
-                LOG("\n");
+                result<<std::endl;
             }
         } else if (pooling_type == LLAMA_POOLING_TYPE_RANK) {
             for (int j = 0; j < n_embd_count; j++) {
                 // NOTE: if you change this log - update the tests in ci/run.sh
-                LOG("rerank score %d: %8.3f\n", j, emb[j * n_embd]);
+                result<<"rerank score "<<j<<": "<<std::fixed << std::setprecision(3) << std::setw(8)<<emb[j * n_embd]<<std::endl;
             }
         } else {
             // print the first part of the embeddings or for a single prompt, the full embedding
             for (int j = 0; j < n_prompts; j++) {
-                LOG("embedding %d: ", j);
+                result<<"embedding "<<j<<": ";
                 for (int i = 0; i < (n_prompts > 1 ? std::min(16, n_embd) : n_embd); i++) {
                     if (params.embd_normalize == 0) {
-                        LOG("%6.0f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(0) << std::setw(6);
                     } else {
-                        LOG("%9.6f ", emb[j * n_embd + i]);
+                        result<<std::fixed << std::setprecision(6) << std::setw(9);
                     }
+                    result<< emb[j * n_embd + i];
                 }
-                LOG("\n");
+                result<<std::endl;
             }
 
             // print cosine similarity matrix
             if (n_prompts > 1) {
-                LOG("\n");
-                LOG("cosine similarity matrix:\n\n");
+                result<<std::endl<<"cosine similarity matrix:"<<std::endl<<std::endl;
                 for (int i = 0; i < n_prompts; i++) {
-                    LOG("%6.6s ", prompts[i].c_str());
+                    result<<std::setw(6)<<prompts[i].substr(0, 6);
                 }
-                LOG("\n");
+                result<<std::endl;
                 for (int i = 0; i < n_prompts; i++) {
                     for (int j = 0; j < n_prompts; j++) {
                         float sim = common_embd_similarity_cos(emb + i * n_embd, emb + j * n_embd, n_embd);
-                        LOG("%6.2f ", sim);
+                        result<<std::fixed << std::setprecision(2) << std::setw(6) << sim;
                     }
-                    LOG("%1.10s", prompts[i].c_str());
-                    LOG("\n");
+                    result<<std::setw(1)<<prompts[i].substr(0, 10)<<std::endl;
                 }
             }
         }
@@ -298,39 +303,72 @@ int llama_embedding(const char * args,const char * prompt) {
     if (params.embd_out == "json" || params.embd_out == "json+" || params.embd_out == "array") {
         const bool notArray = params.embd_out != "array";
 
-        LOG(notArray ? "{\n  \"object\": \"list\",\n  \"data\": [\n" : "[");
-        for (int j = 0;;) { // at least one iteration (one prompt)
-            if (notArray) LOG("    {\n      \"object\": \"embedding\",\n      \"index\": %d,\n      \"embedding\": ",j);
-            LOG("[");
-            for (int i = 0;;) { // at least one iteration (n_embd > 0)
-                LOG(params.embd_normalize == 0 ? "%1.0f" : "%1.7f", emb[j * n_embd + i]);
-                i++;
-                if (i < n_embd) LOG(","); else break;
-            }
-            LOG(notArray ? "]\n    }" : "]");
-            j++;
-            if (j < n_embd_count) LOG(notArray ? ",\n" : ","); else break;
+        if (notArray) {
+            result<<"{\n  \"object\": \"list\",\n  \"data\": [\n";
+        }else{
+            result<<"[";
         }
-        LOG(notArray ? "\n  ]" : "]\n");
+        for (int j = 0;;) { // at least one iteration (one prompt)
+            if (notArray) {
+                result<<"    {\n      \"object\": \"embedding\",\n      \"index\": "<<j<<",\n      \"embedding\": ";
+            }
+            result<<"[";
+
+            for (int i = 0;;) { // at least one iteration (n_embd > 0)
+                if (params.embd_normalize == 0)  {
+                    result<<std::fixed << std::setprecision(0) << std::setw(1);
+                }else{
+                    result<<std::fixed << std::setprecision(7) << std::setw(1);
+                }
+                result<<emb[j * n_embd + i];
+                i++;
+                if (i < n_embd)
+                    result<<",";
+                else
+                    break;
+            }
+            if (notArray) {
+                result<<"]\n    }";
+            }else{
+                result<<"]";
+            }
+            j++;
+            if (j < n_embd_count)
+                if (notArray) {
+                    result<<",\n";
+                }else{
+                    result<<",";
+                }
+            else
+                break;
+
+        }
+
+        if (notArray) {
+            result<<"\n  ]";
+        }else{
+            result<<"]\n";
+        }
 
         if (params.embd_out == "json+" && n_prompts > 1) {
-            LOG(",\n  \"cosineSimilarity\": [\n");
+            result<<",\n  \"cosineSimilarity\": [\n";
             for (int i = 0;;) { // at least two iteration (n_embd_count > 1)
-                LOG("    [");
+                result<<"    [";
+
                 for (int j = 0;;) { // at least two iteration (n_embd_count > 1)
                     float sim = common_embd_similarity_cos(emb + i * n_embd, emb + j * n_embd, n_embd);
-                    LOG("%6.2f", sim);
+                    result<<std::fixed << std::setprecision(2) << std::setw(6) << sim;
                     j++;
-                    if (j < n_embd_count) LOG(", "); else break;
+                    if (j < n_embd_count) result<<", "; else break;
                 }
-                LOG(" ]");
+                result<<" ]";
                 i++;
-                if (i < n_embd_count) LOG(",\n"); else break;
+                if (i < n_embd_count) result<<",\n"; else break;
             }
-            LOG("\n  ]");
+            result<<"\n  ]";
         }
 
-        if (notArray) LOG("\n}\n");
+        if (notArray) result<<"\n}\n";
     }
 
     LOG("\n");
@@ -340,5 +378,10 @@ int llama_embedding(const char * args,const char * prompt) {
     llama_batch_free(batch);
     llama_backend_free();
 
-    return 0;
+    std::string ret = result.str();
+    char* arr = new char[ret.size() + 1];
+    std::copy(ret.begin(), ret.end(), arr);
+    arr[ret.size()] = '\0';
+
+    return arr;
 }

@@ -38,5 +38,5 @@ Or enable interactive mode to run:
 ### Embedding
 
 ```bash
-~ ./llama --model=./qwen2.5-0.5b-q8_0.gguf --prompt=天空为什么是蓝的 embedding
+~ ./llama --model=./qwen2.5-0.5b-q8_0.gguf --prompt=天空为什么是蓝的 --output-file=./embs.json embedding
 ```

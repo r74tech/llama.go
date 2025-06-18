@@ -91,7 +91,7 @@ var (
 		Name:        "pooling",
 		Aliases:     []string{"o"},
 		Usage:       "pooling type for embeddings, use model default if unspecified {none,mean,cls,last,rank}",
-		Value:       "none",
+		Value:       "mean",
 		Destination: &Conf.Pooling,
 	}
 
@@ -107,6 +107,7 @@ var (
 		Name:        "embd-output-format",
 		Aliases:     []string{"FORMAT"},
 		Usage:       "empty = default, \"array\" = [[],[]...], \"json\" = openai style, \"json+\" = same \"json\" + cosine similarity matrix",
+		Value:       "json",
 		Destination: &Conf.EmbdOutputFormat,
 	}
 
@@ -116,6 +117,29 @@ var (
 		Usage:       "separator of embeddings (default \\n) for example \"<#sep#>\\",
 		Value:       "\n",
 		Destination: &Conf.EmbdSeparator,
+	}
+
+	BatchSize = &cli.IntFlag{
+		Name:        "batch-size",
+		Aliases:     []string{"b"},
+		Usage:       "logical maximum batch size",
+		Value:       2048,
+		Destination: &Conf.BatchSize,
+	}
+
+	UBatchSize = &cli.IntFlag{
+		Name:        "ubatch-size",
+		Aliases:     []string{"ub"},
+		Usage:       "physical maximum batch size",
+		Value:       512,
+		Destination: &Conf.UBatchSize,
+	}
+
+	OutputFile = &cli.StringFlag{
+		Name:        "output-file",
+		Aliases:     []string{"of"},
+		Usage:       "output file",
+		Destination: &Conf.OutputFile,
 	}
 
 	AppFlags = []cli.Flag{
@@ -131,6 +155,9 @@ var (
 		EmbdNormalize,
 		EmbdOutputFormat,
 		EmbdSeparator,
+		BatchSize,
+		UBatchSize,
+		OutputFile,
 	}
 )
 
@@ -147,6 +174,9 @@ type Config struct {
 	EmbdNormalize    int
 	EmbdOutputFormat string
 	EmbdSeparator    string
+	BatchSize        int
+	UBatchSize       int
+	OutputFile       string
 }
 
 func (c *Config) Load() error {
