@@ -34,3 +34,9 @@ Or enable interactive mode to run:
 ```bash
 ~ curl -s -k -X POST -H 'Content-Type: application/json' --data '{"prompt":"天空为什么是蓝的"}' http://127.0.0.1:8081/v1/generate
 ```
+
+### Embedding
+
+```bash
+~ ./llama --model=./qwen2.5-0.5b-q8_0.gguf --prompt=天空为什么是蓝的 embedding
+```

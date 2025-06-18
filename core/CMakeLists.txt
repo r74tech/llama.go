@@ -22,7 +22,7 @@ set(LLAMA_CURL OFF)
 add_subdirectory(llama.cpp)
 
 # core
-set(SRCS src/generate.cpp src/interactive.cpp src/process.cpp src/runner.cpp src/event_processor.cpp)
+set(SRCS src/generate.cpp src/interactive.cpp src/process.cpp src/runner.cpp src/event_processor.cpp src/embedding.cpp)
 set(TARGET llama_core)
 
 include_directories(./include)
