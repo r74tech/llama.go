@@ -30,13 +30,20 @@ Or enable interactive mode to run:
 ~ ./llama --model=./qwen2.5-0.5b-q8_0.gguf
 ```
 
-* Supports two access modes: grpc and regular REST API:
+* Support REST API:
 ```bash
-~ curl -s -k -X POST -H 'Content-Type: application/json' --data '{"prompt":"天空为什么是蓝的"}' http://127.0.0.1:8081/v1/generate
+~ curl -s -k -X POST -H 'Content-Type: application/json' --data '{"prompt":"天空为什么是蓝的"}' http://127.0.0.1:8081/api/generate
 ```
 
 ### Embedding
 
+* Local mode:
 ```bash
 ~ ./llama --model=./qwen2.5-0.5b-q8_0.gguf --prompt=天空为什么是蓝的 --output-file=./embs.json embedding
+```
+
+* Server mode:
+```bash
+~ curl -s -k -X POST -H 'Content-Type: application/json' --data '{"input":["天空","蓝色"]}' http://127.0.0.1:8081/api/embed
+~ curl -s -k -X POST -H 'Content-Type: application/json' --data '{"prompt":"天空为什么是蓝的"}' http://127.0.0.1:8081/api/embeddings
 ```
