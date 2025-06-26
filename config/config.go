@@ -120,7 +120,7 @@ var (
 		Name:        "embd-separator",
 		Aliases:     []string{"STRING"},
 		Usage:       "separator of embeddings (default \\n) for example \"<#sep#>\\",
-		Value:       "\n",
+		Value:       "<#sep#>",
 		Destination: &Conf.EmbdSeparator,
 	}
 

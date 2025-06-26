@@ -105,26 +105,26 @@ func LlamaStop() error {
 	return nil
 }
 
-func LlamaEmbedding(cfg *config.Config) (string, error) {
-	if len(cfg.Model) <= 0 {
+func LlamaEmbedding(cfg *config.Config, model string, prompts string, embdOutputFormat string) (string, error) {
+	if len(model) <= 0 {
 		return "", fmt.Errorf("No model")
 	}
-	if len(cfg.Prompt) <= 0 {
+	if len(prompts) <= 0 {
 		return "", fmt.Errorf("No prompt")
 	}
-	ip := C.CString(cfg.Prompt)
+	ip := C.CString(prompts)
 	defer C.free(unsafe.Pointer(ip))
 
 	cfgArgs := fmt.Sprintf("llama --model %s --ctx-size %d --n-gpu-layers %d --n-predict %d --seed %d --embd-normalize %d --batch-size %d --ubatch-size %d",
-		cfg.Model, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed, cfg.EmbdNormalize, cfg.BatchSize, cfg.UBatchSize)
+		model, cfg.CtxSize, cfg.NGpuLayers, cfg.NPredict, cfg.Seed, cfg.EmbdNormalize, cfg.BatchSize, cfg.UBatchSize)
 	if len(cfg.Pooling) > 0 {
 		cfgArgs = fmt.Sprintf("%s --pooling %s", cfgArgs, cfg.Pooling)
 	}
-	if len(cfg.EmbdOutputFormat) > 0 {
-		cfgArgs = fmt.Sprintf("%s --embd-output-format %s", cfgArgs, cfg.EmbdOutputFormat)
+	if len(embdOutputFormat) > 0 {
+		cfgArgs = fmt.Sprintf("%s --embd-output-format %s", cfgArgs, embdOutputFormat)
 	}
 	if len(cfg.EmbdSeparator) > 0 {
-		cfgArgs = fmt.Sprintf("%s --embd-separator %s", cfgArgs, cfg.EmbdOutputFormat)
+		cfgArgs = fmt.Sprintf("%s --embd-separator %s", cfgArgs, cfg.EmbdSeparator)
 	}
 	ca := C.CString(cfgArgs)
 	defer C.free(unsafe.Pointer(ca))

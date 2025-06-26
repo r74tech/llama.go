@@ -47,7 +47,7 @@ func embeddingCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			ret, err := wrapper.LlamaEmbedding(cfg)
+			ret, err := wrapper.LlamaEmbedding(cfg, cfg.Model, cfg.Prompt, cfg.EmbdOutputFormat)
 			if err != nil {
 				return err
 			}

@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -272,6 +273,7 @@ func (s *Service) ChatHandler(c *gin.Context) {
 }
 
 func (s *Service) EmbedHandler(c *gin.Context) {
+	checkpointStart := time.Now()
 	var req api.EmbedRequest
 	err := c.ShouldBindJSON(&req)
 	switch {
@@ -305,7 +307,44 @@ func (s *Service) EmbedHandler(c *gin.Context) {
 		}
 	}
 
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No support"})
+	checkpointLoaded := time.Now()
+
+	if len(input) == 0 {
+		c.JSON(http.StatusOK, api.EmbedResponse{Model: req.Model, Embeddings: [][]float32{}})
+		return
+	}
+
+	prompts := ""
+	for k, i := range input {
+		if k > 0 {
+			prompts += s.cfg.EmbdSeparator
+		}
+		prompts += i
+	}
+
+	ret, err := wrapper.LlamaEmbedding(s.cfg, s.cfg.Model, prompts, "array")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": strings.TrimSpace(err.Error())})
+		return
+	}
+	var embeddings [][]float32
+	err = json.Unmarshal([]byte(ret), &embeddings)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": strings.TrimSpace(err.Error())})
+		return
+	}
+	if len(embeddings) != len(input) {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%d != %d", len(embeddings), len(input))})
+		return
+	}
+	resp := api.EmbedResponse{
+		Model:           req.Model,
+		Embeddings:      embeddings,
+		TotalDuration:   time.Since(checkpointStart),
+		LoadDuration:    checkpointLoaded.Sub(checkpointStart),
+		PromptEvalCount: len(input),
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Service) EmbeddingsHandler(c *gin.Context) {
@@ -317,7 +356,28 @@ func (s *Service) EmbeddingsHandler(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No support"})
+
+	// an empty request loads the model
+	if req.Prompt == "" {
+		c.JSON(http.StatusOK, api.EmbeddingResponse{Embedding: []float64{}})
+		return
+	}
+
+	ret, err := wrapper.LlamaEmbedding(s.cfg, s.cfg.Model, req.Prompt, "array")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": strings.TrimSpace(err.Error())})
+		return
+	}
+	var embeddings [][]float64
+	err = json.Unmarshal([]byte(ret), &embeddings)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": strings.TrimSpace(err.Error())})
+		return
+	}
+	resp := api.EmbeddingResponse{
+		Embedding: embeddings[0],
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Service) ListHandler(c *gin.Context) {
