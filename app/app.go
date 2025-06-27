@@ -4,7 +4,7 @@ package app
 
 import (
 	"github.com/Qitmeer/llama.go/config"
-	"github.com/Qitmeer/llama.go/grpc"
+	"github.com/Qitmeer/llama.go/server"
 	"github.com/Qitmeer/llama.go/wrapper"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
@@ -13,17 +13,17 @@ import (
 )
 
 type App struct {
-	ctx   *cli.Context
-	cfg   *config.Config
-	grSer *grpc.Service
-	wg    sync.WaitGroup
+	ctx *cli.Context
+	cfg *config.Config
+	ser *server.Service
+	wg  sync.WaitGroup
 }
 
 func NewApp(ctx *cli.Context, cfg *config.Config) *App {
 	app := &App{
-		ctx:   ctx,
-		cfg:   cfg,
-		grSer: grpc.New(ctx, cfg),
+		ctx: ctx,
+		cfg: cfg,
+		ser: server.New(ctx, cfg),
 	}
 	return app
 }
@@ -56,7 +56,7 @@ func (a *App) Start() error {
 		a.wg.Add(1)
 		go a.startLLama()
 	}
-	return a.grSer.Start()
+	return a.ser.Start()
 }
 
 func (a *App) startLLama() {
@@ -71,7 +71,10 @@ func (a *App) startLLama() {
 func (a *App) Stop() error {
 	log.Info("Stop App")
 	if !a.cfg.Interactive && !a.cfg.IsLonely() {
-		a.grSer.Stop()
+		err := a.ser.Stop()
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
 	if !a.cfg.Interactive {
 		err := wrapper.LlamaStop()

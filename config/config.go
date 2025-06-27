@@ -7,14 +7,19 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 	"math"
+	"net"
+	"net/url"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 const (
-	defaultLogLevel     = "info"
-	DefaultGrpcEndpoint = "localhost:50051"
-	defaultNPredict     = 512
+	defaultLogLevel = "info"
+	defaultNPredict = 512
+	DefaultHost     = "127.0.0.1:8081"
+	DefaultPort     = "8081"
 )
 
 var (
@@ -115,7 +120,7 @@ var (
 		Name:        "embd-separator",
 		Aliases:     []string{"STRING"},
 		Usage:       "separator of embeddings (default \\n) for example \"<#sep#>\\",
-		Value:       "\n",
+		Value:       "<#sep#>",
 		Destination: &Conf.EmbdSeparator,
 	}
 
@@ -142,6 +147,23 @@ var (
 		Destination: &Conf.OutputFile,
 	}
 
+	Host = &cli.StringFlag{
+		Name:        "host",
+		Aliases:     []string{"ho"},
+		Usage:       fmt.Sprintf("IP Address for the ollama server (default %s)", DefaultHost),
+		Value:       DefaultHost,
+		EnvVars:     []string{"LLAMAGO_HOST"},
+		Destination: &Conf.Host,
+	}
+
+	Origins = &cli.StringFlag{
+		Name:        "origins",
+		Aliases:     []string{"or"},
+		Usage:       "A comma separated list of allowed origins",
+		EnvVars:     []string{"LLAMAGO_ORIGINS"},
+		Destination: &Conf.Origins,
+	}
+
 	AppFlags = []cli.Flag{
 		LogLevel,
 		Model,
@@ -158,6 +180,8 @@ var (
 		BatchSize,
 		UBatchSize,
 		OutputFile,
+		Host,
+		Origins,
 	}
 )
 
@@ -177,6 +201,8 @@ type Config struct {
 	BatchSize        int
 	UBatchSize       int
 	OutputFile       string
+	Host             string
+	Origins          string
 }
 
 func (c *Config) Load() error {
@@ -197,4 +223,67 @@ func defaultNGpuLayers() int {
 		return -1
 	}
 	return 0
+}
+
+func (c *Config) HostURL() *url.URL {
+	defaultPort := DefaultPort
+	chost := c.Host
+	scheme, hostport, ok := strings.Cut(chost, "://")
+	switch {
+	case !ok:
+		scheme, hostport = "http", chost
+	case scheme == "http":
+		defaultPort = "80"
+	case scheme == "https":
+		defaultPort = "443"
+	}
+
+	hostport, path, _ := strings.Cut(hostport, "/")
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		host, port = "127.0.0.1", defaultPort
+		if ip := net.ParseIP(strings.Trim(hostport, "[]")); ip != nil {
+			host = ip.String()
+		} else if hostport != "" {
+			host = hostport
+		}
+	}
+
+	if n, err := strconv.ParseInt(port, 10, 32); err != nil || n > 65535 || n < 0 {
+		log.Warn("invalid port, using default", "port", port, "default", defaultPort)
+		port = defaultPort
+	}
+
+	return &url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(host, port),
+		Path:   path,
+	}
+}
+
+// AllowedOrigins returns a list of allowed origins. AllowedOrigins can be configured via the LLAMAGO_ORIGINS environment variable.
+func (c *Config) AllowedOrigins() []string {
+	origins := []string{}
+	if len(c.Origins) > 0 {
+		origins = strings.Split(c.Origins, ",")
+	}
+
+	for _, origin := range []string{"localhost", "127.0.0.1", "0.0.0.0"} {
+		origins = append(origins,
+			fmt.Sprintf("http://%s", origin),
+			fmt.Sprintf("https://%s", origin),
+			fmt.Sprintf("http://%s", net.JoinHostPort(origin, "*")),
+			fmt.Sprintf("https://%s", net.JoinHostPort(origin, "*")),
+		)
+	}
+
+	origins = append(origins,
+		"app://*",
+		"file://*",
+		"tauri://*",
+		"vscode-webview://*",
+		"vscode-file://*",
+	)
+
+	return origins
 }
