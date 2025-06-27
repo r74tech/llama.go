@@ -9,6 +9,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/ollama/ollama/openai"
+	"github.com/ollama/ollama/template"
 	"github.com/urfave/cli/v2"
 	"net"
 	"net/http"
@@ -16,8 +17,9 @@ import (
 )
 
 type Service struct {
-	ctx *cli.Context
-	cfg *config.Config
+	ctx  *cli.Context
+	cfg  *config.Config
+	tmpl *template.Template
 
 	addr net.Addr
 	srvr *http.Server
@@ -33,6 +35,11 @@ func New(ctx *cli.Context, cfg *config.Config) *Service {
 
 func (s *Service) Start() error {
 	log.Info("Start Server...")
+	tmpl, err := template.Parse("{{- range .Messages }}<|im_start|>{{ .Role }}\n{{ .Content }}<|im_end|>\n{{ end }}<|im_start|>assistant")
+	if err != nil {
+		return err
+	}
+	s.tmpl = tmpl
 
 	ln, err := net.Listen("tcp", s.cfg.HostURL().Host)
 	if err != nil {
