@@ -96,17 +96,14 @@ func (s *Service) GenerateHandler(c *gin.Context) {
 
 	prompt := req.Prompt
 	if !req.Raw {
-		tmpl, err := template.Parse("{{- range .Messages }}<|im_start|>{{ .Role }}\n{{ .Content }}<|im_end|>\n{{ end }}<|im_start|>assistant")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		tmpl := s.tmpl
 		if req.Template != "" {
-			tmpl, err = template.Parse(req.Template)
+			tm, err := template.Parse(req.Template)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+			tmpl = tm
 		}
 
 		var values template.Values
@@ -219,18 +216,13 @@ func (s *Service) ChatHandler(c *gin.Context) {
 		return
 	}
 
-	tmpl, err := template.Parse("{{ .prompt }}")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 	var values template.Values
 	values.Messages = req.Messages
 	values.Think = req.Think != nil && *req.Think
 	values.IsThinkSet = req.Think != nil
 
 	var b bytes.Buffer
-	if err := tmpl.Execute(&b, values); err != nil {
+	if err := s.tmpl.Execute(&b, values); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
