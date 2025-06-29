@@ -2,6 +2,7 @@
 
 #include "event_processor.h"
 #include "sampling.h"
+#include "message.h"
 
 class Runner {
 private:
@@ -27,6 +28,7 @@ public:
     bool start();
     bool stop();
     const std::string generate(const std::string& prompt);
+    const std::string chat(const std::vector<Message>& mgs);
     int getID();
     bool isRunning();
 

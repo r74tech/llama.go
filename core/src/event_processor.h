@@ -2,15 +2,16 @@
 #include <queue>
 #include <mutex>
 #include <future>
+#include "message.h"
 
 class EventProcessor {
 public:
     struct Event {
-        std::string data;
+        std::vector<Message> data;
         std::promise<std::string> result;
     };
 
-    std::string enqueue(const std::string& data);
+    std::string enqueue(const std::vector<Message>& data);
 
     bool dequeue(Event& event);
 

@@ -53,3 +53,26 @@ const char * llama_gen(const char * prompt) {
 
     return arr;
 }
+
+const char * llama_chat(const char **roles,const char **contents, int size) {
+    if (g_runner == nullptr) {
+        LOG_ERR("Not init llama\n");
+        return "";
+    }
+    std::vector<Message> msgs;
+
+    for (int i = 0; i < size; i++) {
+        Message msg;
+        msg.role=roles[i];
+        msg.content=contents[i];
+
+        msgs.push_back(msg);
+    }
+
+    std::string result = g_runner->chat(msgs);
+    char* arr = new char[result.size() + 1];
+    std::copy(result.begin(), result.end(), arr);
+    arr[result.size()] = '\0';
+
+    return arr;
+}

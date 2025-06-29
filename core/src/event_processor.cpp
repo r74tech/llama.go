@@ -1,6 +1,6 @@
 #include "event_processor.h"
 
-std::string EventProcessor::enqueue(const std::string& data) {
+std::string EventProcessor::enqueue(const std::vector<Message>& data) {
     Event event;
     event.data = data;
 

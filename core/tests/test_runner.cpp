@@ -19,7 +19,7 @@ int main() {
     std::stringstream ss;
     ss << "test_runner -m " << model << " -i --seed 0";
 
-    bool ret=llama_start(ss.str().c_str(), 0,std::string(""));
+    bool ret=llama_start(ss.str().c_str(), 0,std::string("").c_str());
     if (!ret) {
         return 1;
     }
