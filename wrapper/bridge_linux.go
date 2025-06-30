@@ -7,7 +7,7 @@ package wrapper
 #cgo CXXFLAGS: -std=c++17
 #cgo CFLAGS: -I${SRCDIR}/../core/include
 #cgo CXXFLAGS: -I${SRCDIR}/../core/include
-#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -lggml -lggml-base -lggml-cpu -lstdc++ -lm
+#cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lcommon -lllama -lggml -lggml-base -lggml-cpu -lstdc++ -lm
 #include <stdlib.h>
 #include "core.h"
 */
@@ -15,6 +15,7 @@ import "C"
 
 import (
 	"fmt"
+	"github.com/ollama/ollama/api"
 	"unsafe"
 
 	"github.com/Qitmeer/llama.go/config"
