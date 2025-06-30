@@ -17,26 +17,11 @@ import "C"
 
 import (
 	"fmt"
+	"github.com/ollama/ollama/api"
 	"unsafe"
 
 	"github.com/Qitmeer/llama.go/config"
 )
-
-func LlamaGenerate(cfg *config.Config) (string, error) {
-	mp := C.CString(cfg.Model)
-	defer C.free(unsafe.Pointer(mp))
-
-	ip := C.CString(cfg.Prompt)
-	defer C.free(unsafe.Pointer(ip))
-
-	ret := C.llama_generate(mp, ip, C.int(cfg.NGpuLayers), C.int(cfg.NPredict))
-	if ret == nil {
-		return "", fmt.Errorf("Llama run error")
-	}
-	content := C.GoString(ret)
-	C.free(unsafe.Pointer(ret))
-	return content, nil
-}
 
 func LlamaInteractive(cfg *config.Config) error {
 	if !cfg.Interactive {
@@ -64,7 +49,7 @@ func LlamaInteractive(cfg *config.Config) error {
 	return nil
 }
 
-func LlamaProcess(prompt string) (string, error) {
+func LlamaGenerate(prompt string) (string, error) {
 	if len(prompt) <= 0 {
 		return "", fmt.Errorf("No prompt")
 	}
@@ -72,6 +57,34 @@ func LlamaProcess(prompt string) (string, error) {
 	defer C.free(unsafe.Pointer(ip))
 
 	ret := C.llama_gen(ip)
+	if ret == nil {
+		return "", fmt.Errorf("Llama run error")
+	}
+	content := C.GoString(ret)
+	C.free(unsafe.Pointer(ret))
+	return content, nil
+}
+
+func LlamaChat(msgs []api.Message) (string, error) {
+	size := len(msgs)
+	if size <= 0 {
+		return "", fmt.Errorf("No messages for chat")
+	}
+	roles := make([]*C.char, size)
+	contents := make([]*C.char, size)
+
+	for i, m := range msgs {
+		roles[i] = C.CString(m.Role)
+		defer C.free(unsafe.Pointer(roles[i]))
+
+		contents[i] = C.CString(m.Content)
+		defer C.free(unsafe.Pointer(contents[i]))
+	}
+
+	rolesPtr := (**C.char)(unsafe.Pointer(&roles[0]))
+	contentsPtr := (**C.char)(unsafe.Pointer(&contents[0]))
+
+	ret := C.llama_chat(rolesPtr, contentsPtr, C.int(size))
 	if ret == nil {
 		return "", fmt.Errorf("Llama run error")
 	}

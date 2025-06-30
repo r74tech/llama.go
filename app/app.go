@@ -46,7 +46,7 @@ func (a *App) Start() error {
 		a.wg.Add(1)
 		go a.startLLama()
 		time.Sleep(time.Second)
-		content, err := wrapper.LlamaProcess(a.cfg.Prompt)
+		content, err := wrapper.LlamaGenerate(a.cfg.Prompt)
 		if err != nil {
 			return err
 		}

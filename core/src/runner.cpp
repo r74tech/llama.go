@@ -8,6 +8,7 @@
 #include "sampling.h"
 #include "llama.h"
 #include "chat.h"
+#include "message.h"
 
 #include <cstdio>
 #include <cstring>
@@ -41,6 +42,41 @@ static bool file_is_empty(const std::string & path) {
     f.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     f.open(path.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
     return f.tellg() == 0;
+}
+
+std::string common_chat_formats(
+        const struct common_chat_templates * tmpls,
+        const std::vector<common_chat_msg> & past_msg,
+        const std::vector<common_chat_msg> & new_msg,
+        bool use_jinja) {
+
+    common_chat_templates_inputs inputs;
+    inputs.use_jinja = use_jinja;
+
+    std::string fmt_past_msg;
+    if (!past_msg.empty()) {
+        inputs.messages = past_msg;
+        inputs.add_generation_prompt = false;
+        fmt_past_msg = common_chat_templates_apply(tmpls, inputs).prompt;
+    }
+    std::ostringstream ss;
+    bool add_ass= false;
+    if (new_msg[0].content == "user")
+        add_ass= true;
+    // if the past_msg ends with a newline, we must preserve it in the formatted version
+    if (add_ass && !fmt_past_msg.empty() && fmt_past_msg.back() == '\n') {
+        ss << "\n";
+    };
+    // format chat with new_msg
+    for (common_chat_msg msg:new_msg) {
+        inputs.messages.push_back(msg);
+    }
+
+    inputs.add_generation_prompt = add_ass;
+    auto fmt_new_msg = common_chat_templates_apply(tmpls, inputs).prompt;
+    // get the diff part
+    ss << fmt_new_msg.substr(fmt_past_msg.size(), fmt_new_msg.size() - fmt_past_msg.size());
+    return ss.str();
 }
 
 Runner::Runner(int id,const std::vector<std::string>& args,bool async,const std::string& prompt) :
@@ -249,14 +285,32 @@ bool Runner::start() {
     std::vector<llama_token> embd_inp;
 
     bool waiting_for_first_input = false;
-    auto chat_add_and_format = [&chat_msgs, &chat_templates,this](const std::string & role, const std::string & content) {
-        common_chat_msg new_msg;
-        new_msg.role = role;
-        new_msg.content = content;
-        auto formatted = common_chat_format_single(chat_templates.get(), chat_msgs, new_msg, role == "user", m_params->use_jinja);
-        chat_msgs.push_back(new_msg);
+
+    auto chat_adds_and_format = [&chat_msgs, &chat_templates,this](const std::vector<Message>& msgs) {
+        std::vector<common_chat_msg> new_msg;
+        for (const Message& msg:msgs) {
+            common_chat_msg cmsg;
+            msg.fillMessage(cmsg);
+            new_msg.push_back(cmsg);
+        }
+        auto formatted = common_chat_formats(chat_templates.get(), chat_msgs, new_msg, m_params->use_jinja);
+
+        for (const common_chat_msg& cmsg:new_msg) {
+            chat_msgs.push_back(cmsg);
+        }
+
         LOG_DBG("formatted: '%s'\n", formatted.c_str());
         return formatted;
+    };
+
+    auto chat_add_and_format = [&chat_msgs, &chat_templates,this,&chat_adds_and_format](const std::string & role, const std::string & content) {
+        std::vector<Message> msgs;
+        Message new_msg;
+        new_msg.role = role;
+        new_msg.content = content;
+        msgs.push_back(new_msg);
+
+        return chat_adds_and_format(msgs);
     };
 
     std::string prompt;
@@ -816,7 +870,7 @@ bool Runner::start() {
                     embd_inp.push_back(llama_vocab_bos(vocab));
                 }
 
-                std::string buffer;
+                std::vector<Message> buffer;
                 if (!params.input_prefix.empty() && !params.conversation_mode) {
                     LOG_DBG("appending input prefix: '%s'\n", params.input_prefix.c_str());
                     LOG("%s", params.input_prefix.c_str());
@@ -830,7 +884,7 @@ bool Runner::start() {
                     break;
                 }
                 buffer=event.data;
-                event.data="";
+                event.data.clear();
                 // done taking input, reset color
                 console::set_display(console::reset);
                 display = true;
@@ -839,13 +893,14 @@ bool Runner::start() {
                     LOG("EOF by user\n");
                     break;
                 }
-
-                if (buffer.back() == '\n') {
-                    // Implement #587:
-                    // If the user wants the text to end in a newline,
-                    // this should be accomplished by explicitly adding a newline by using \ followed by return,
-                    // then returning control by pressing return again.
-                    buffer.pop_back();
+                for (Message& msg:buffer) {
+                    if (msg.content.back() == '\n') {
+                        // Implement #587:
+                        // If the user wants the text to end in a newline,
+                        // this should be accomplished by explicitly adding a newline by using \ followed by return,
+                        // then returning control by pressing return again.
+                        msg.content.pop_back();
+                    }
                 }
 
                 if (buffer.empty()) { // Enter key on empty line lets the user pass control back
@@ -856,19 +911,28 @@ bool Runner::start() {
                         LOG_DBG("appending input suffix: '%s'\n", params.input_suffix.c_str());
                         LOG("%s", params.input_suffix.c_str());
                     }
+                    LOG_DBG("buffer:\n");
 
-                    LOG_DBG("buffer: '%s'\n", buffer.c_str());
+                    std::string buffer_content;
+
+                    for (Message& msg:buffer) {
+                        LOG_DBG("role:%s content:%s\n", msg.role.c_str(),msg.content.c_str());
+
+                        if (params.escape) {
+                            string_process_escapes(msg.content);
+                        }
+                        if (!buffer_content.empty()) {
+                            buffer_content +="\n";
+                        }
+                        buffer_content +=msg.content;
+                    }
 
                     const size_t original_size = embd_inp.size();
 
-                    if (params.escape) {
-                        string_process_escapes(buffer);
-                    }
-
                     bool format_chat = params.conversation_mode && params.enable_chat_template;
                     std::string user_inp = format_chat
-                                           ? chat_add_and_format("user", std::move(buffer))
-                                           : std::move(buffer);
+                                           ? chat_adds_and_format(buffer)
+                                           : buffer_content;
                     // TODO: one inconvenient of current chat template implementation is that we can't distinguish between user input and special tokens (prefix/postfix)
                     const auto line_pfx = common_tokenize(ctx, params.input_prefix, false, true);
                     const auto line_inp = common_tokenize(ctx, user_inp,            false, format_chat);
@@ -965,9 +1029,23 @@ const std::string Runner::generate(const std::string& prompt) {
         std::cout << "No Start:"<<m_id<< std::endl;
         return "";
     }
-    std::cout << "Runner Chat:"<<m_id<< std::endl;
+    std::cout << "Runner generate id:"<<m_id<<" prompt:"<<prompt<< std::endl;
 
-    return m_eprocessor.enqueue(prompt);
+    std::vector<Message> mgs;
+    Message mg{"user",prompt};
+    mgs.push_back(mg);
+
+    return m_eprocessor.enqueue(mgs);
+}
+
+const std::string Runner::chat(const std::vector<Message>& mgs) {
+    if (!isRunning()) {
+        std::cout << "No Start:"<<m_id<< std::endl;
+        return "";
+    }
+    std::cout << "Runner chat id:"<<m_id<<" message.size:"<<mgs.size()<< std::endl;
+
+    return m_eprocessor.enqueue(mgs);
 }
 
 int Runner::getID() {
@@ -1002,6 +1080,10 @@ bool Runner::getPrompt(EventProcessor::Event& event) {
         buffer += line;
     } while (another_line);
 
-    event.data=buffer;
+    std::vector<Message> mgs;
+    Message mg{"user",buffer};
+    mgs.push_back(mg);
+
+    event.data=mgs;
     return true;
 }

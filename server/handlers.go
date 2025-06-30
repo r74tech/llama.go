@@ -135,7 +135,7 @@ func (s *Service) GenerateHandler(c *gin.Context) {
 
 		prompt = b.String()
 	}
-	content, err := wrapper.LlamaProcess(prompt)
+	content, err := wrapper.LlamaGenerate(prompt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -216,18 +216,7 @@ func (s *Service) ChatHandler(c *gin.Context) {
 		return
 	}
 
-	var values template.Values
-	values.Messages = req.Messages
-	values.Think = req.Think != nil && *req.Think
-	values.IsThinkSet = req.Think != nil
-
-	var b bytes.Buffer
-	if err := s.tmpl.Execute(&b, values); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	content, err := wrapper.LlamaProcess(b.String())
+	content, err := wrapper.LlamaChat(req.Messages)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
