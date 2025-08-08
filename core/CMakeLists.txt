@@ -29,7 +29,7 @@ include_directories(./include)
 include_directories(./llama.cpp/include)
 include_directories(./llama.cpp/common)
 
-link_directories(./../build/lib)
+link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_library(${TARGET} STATIC ${SRCS})
 target_link_libraries(${TARGET} PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT})

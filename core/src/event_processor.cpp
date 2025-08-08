@@ -1,4 +1,5 @@
 #include "event_processor.h"
+#include <stdexcept>
 
 std::string EventProcessor::enqueue(const std::vector<Message>& data) {
     Event event;
@@ -33,6 +34,16 @@ void EventProcessor::stop() {
     {
         std::lock_guard<std::mutex> lock(m_mtx);
         m_stop = true;
+        // Fail all pending events so that any threads blocked in enqueue().get() can exit
+        while (!m_queue.empty()) {
+            try {
+                m_queue.front().result.set_exception(
+                    std::make_exception_ptr(std::runtime_error("EventProcessor stopped")));
+            } catch (...) {
+                // Swallow exceptions from setting the promise multiple times or races
+            }
+            m_queue.pop();
+        }
     }
     m_cv.notify_all();
 }
