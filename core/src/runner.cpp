@@ -8,6 +8,7 @@
 #include "sampling.h"
 #include "llama.h"
 #include "chat.h"
+#include "chat.cpp"
 #include "message.h"
 
 #include <cstdio>
@@ -52,6 +53,8 @@ std::string common_chat_formats(
 
     common_chat_templates_inputs inputs;
     inputs.use_jinja = use_jinja;
+    inputs.add_bos = tmpls->add_bos;
+    inputs.add_eos = tmpls->add_eos;
 
     std::string fmt_past_msg;
     if (!past_msg.empty()) {
