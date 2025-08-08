@@ -22,7 +22,7 @@ int main() {
     ss << "test_runner_gen -m " << model << " -i --seed 0";
 
     std::future<void> ll_main = std::async(std::launch::async, [&ss](){
-        bool ret = llama_start(ss.str().c_str(), true,"");
+        bool ret = llama_start(ss.str().c_str(), 1,"");
         std::cout<<"Result0:"<<ret<<std::endl;
     });
 
