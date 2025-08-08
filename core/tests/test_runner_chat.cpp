@@ -30,7 +30,7 @@ int main() {
 
     std::future<void> ll_gen = std::async(std::launch::async, [](){
         const char* roles[] = { "system","user"};
-        const char* contents[] = {,"why sky is blue"};
+        const char* contents[] = {"llama","why sky is blue"};
         int size = 2;
 
         std::string content = llama_chat(roles,contents,size);
@@ -38,6 +38,9 @@ int main() {
             return;
         }
         std::cout<<"Response:"<<content<<std::endl;
+
+        bool ret =llama_stop();
+        std::cout<<"Result1:"<<ret<<std::endl;
         });
 
 

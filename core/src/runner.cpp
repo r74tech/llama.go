@@ -591,6 +591,9 @@ bool Runner::start() {
     EventProcessor::Event event;
 
     while ((n_remain != 0 && !is_antiprompt) || params.interactive) {
+        if (!m_running) {
+            break;
+        }
         // predict
         if (!embd.empty()) {
             // Note: (n_ctx - 4) here is to match the logic for commandline prompt handling via
