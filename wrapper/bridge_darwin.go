@@ -12,13 +12,15 @@ package wrapper
 #cgo LDFLAGS: -L${SRCDIR}/../build/lib -lllama_core -lllama -lcommon -lggml -lggml-base -lggml-cpu -lggml-blas -lggml-metal
 #include <stdlib.h>
 #include "core.h"
+#include "process.h"
 */
 import "C"
 
 import (
 	"fmt"
-	"github.com/ollama/ollama/api"
 	"unsafe"
+
+	"github.com/ollama/ollama/api"
 
 	"github.com/Qitmeer/llama.go/config"
 )

@@ -1,6 +1,7 @@
 OS := $(shell uname)
 RM := rm -rf
 BUILD_DIR := ./build
+SUBMODULE_DIR := ./core/llama.cpp
 
 all: run
 
@@ -22,8 +23,11 @@ clean:
 	@echo "Cleaning $(BUILD_DIR) directory"
 ifeq ($(OS), Linux)
 	$(RM) $(BUILD_DIR)
+	cd $(SUBMODULE_DIR) && git checkout . && git clean -fdx
 else ifeq ($(OS), Darwin)
 	$(RM) $(BUILD_DIR)
+	cd $(SUBMODULE_DIR) && git checkout . && git clean -fdx
 else
 	@powershell -Command "if (Test-Path '$(BUILD_DIR)') { Remove-Item -Recurse -Force '$(BUILD_DIR)' }"
+	cd $(SUBMODULE_DIR) && git checkout . && git clean -fdx
 endif

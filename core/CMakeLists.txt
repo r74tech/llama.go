@@ -12,6 +12,26 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
+# Apply memory loading patch if not already applied
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp/.memory_patch_applied")
+    message(STATUS "Applying memory loading patch...")
+    execute_process(
+        COMMAND patch -p1 -N
+        INPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
+        RESULT_VARIABLE PATCH_RESULT
+        OUTPUT_VARIABLE PATCH_OUTPUT
+        ERROR_VARIABLE PATCH_ERROR
+    )
+
+    if(PATCH_RESULT EQUAL 0)
+        file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp/.memory_patch_applied" "patch applied")
+        message(STATUS "Memory loading patch applied successfully")
+    else()
+        message(STATUS "Patch already applied or failed (this is okay if already patched)")
+    endif()
+endif()
+
 # llama.cpp
 set(GGML_USE_OPENMP OFF)
 set(GGML_OPENMP OFF)

@@ -1,6 +1,9 @@
 # llama.go
 Go bindings to llama.cpp
 
+> [!IMPORTANT]
+> This is a fork of the original [Qitmeer/llama.go](https://github.com/Qitmeer/llama.go) with added memory buffer loading functionality.
+
 ### Installation
 ***make sure you have `git golang cmake gcc make` installed on the system to build.***
 * Build from source

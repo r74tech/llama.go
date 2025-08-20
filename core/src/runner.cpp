@@ -7,6 +7,7 @@
 #include "log.h"
 #include "sampling.h"
 #include "llama.h"
+#include "llama-cpp.h"
 #include "chat.h"
 #include "chat.cpp"
 #include "message.h"
@@ -19,6 +20,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+// External global variables for memory-loaded model
+extern const void *g_model_buffer;
+extern size_t g_model_buffer_size;
+extern bool g_use_mmap;
 
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
@@ -159,7 +165,64 @@ bool Runner::start() {
 
     // load the model and apply lora adapter, if any
     LOG_INF("%s: load the model and apply lora adapter, if any\n", __func__);
-    common_init_result llama_init = common_init_from_params(params);
+
+    common_init_result llama_init;
+
+    // Check if we should load from memory buffer
+    if (g_model_buffer != nullptr && g_model_buffer_size > 0) {
+        LOG_INF("%s: loading model from memory buffer (size=%zu, mmap=%d)\n",
+                __func__, g_model_buffer_size, g_use_mmap);
+
+        // Load model from memory buffer
+        llama_model_params model_params = llama_model_default_params();
+        model_params.n_gpu_layers = params.n_gpu_layers;
+        model_params.use_mmap = g_use_mmap;
+
+        llama_model *raw_model = nullptr;
+        if (g_use_mmap) {
+            raw_model = llama_model_load_from_mmap(
+                g_model_buffer, g_model_buffer_size, model_params);
+        } else {
+            raw_model = llama_model_load_from_buffer(
+                g_model_buffer, g_model_buffer_size, model_params);
+        }
+
+        if (raw_model == nullptr) {
+            LOG_ERR("%s: failed to load model from memory buffer\n", __func__);
+            return false;
+        }
+
+        // Create context
+        llama_context_params ctx_params = llama_context_default_params();
+        ctx_params.n_ctx = params.n_ctx;
+        ctx_params.n_batch = params.n_batch;
+        ctx_params.n_ubatch = params.n_ubatch;
+        ctx_params.n_threads = params.cpuparams.n_threads;
+        ctx_params.n_threads_batch = params.cpuparams_batch.n_threads;
+
+        llama_context *raw_ctx = llama_init_from_model(raw_model, ctx_params);
+
+        if (raw_ctx == nullptr) {
+            LOG_ERR("%s: failed to create context from memory-loaded model\n",
+                    __func__);
+            llama_model_free(raw_model);
+            return false;
+        }
+
+        // Wrap in unique_ptrs
+        llama_init.model =
+            std::unique_ptr<llama_model, llama_model_deleter>(raw_model);
+        llama_init.context =
+            std::unique_ptr<llama_context, llama_context_deleter>(raw_ctx);
+
+        // Clear global variables after use
+        g_model_buffer = nullptr;
+        g_model_buffer_size = 0;
+        g_use_mmap = false;
+    } else {
+        // Normal file-based loading
+        llama_init = common_init_from_params(params);
+    }
 
     model = llama_init.model.get();
     ctx = llama_init.context.get();

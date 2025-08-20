@@ -5,3 +5,4 @@ bin
 build
 build/bin
 cmake-build-*
+models
