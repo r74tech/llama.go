@@ -30,6 +30,10 @@ $GITDIRTY = if (git diff --quiet) { "" } else { "-dirty" }
 $GITVERSION = "${GITVER}${GITDIRTY}"
 $versionBuild = "github.com/Qitmeer/llama.go/version.Build=dev-$GITVERSION"
 $env:CGO_ENABLED = "1"
+$env:GOOS = "windows"
+$env:GOARCH = "amd64"
+$env:CC = "gcc"
+$env:CXX = "g++"
 $env:LD_LIBRARY_PATH = "$buildDir/lib"
 
 cd ./cmd/llama

@@ -15,14 +15,54 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 # Apply memory loading patch if not already applied
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp/.memory_patch_applied")
     message(STATUS "Applying memory loading patch...")
-    execute_process(
-        COMMAND patch -p1 -N
-        INPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
-        RESULT_VARIABLE PATCH_RESULT
-        OUTPUT_VARIABLE PATCH_OUTPUT
-        ERROR_VARIABLE PATCH_ERROR
-    )
+
+    # Check if we're on Windows
+    if(WIN32)
+        # Try git apply first (more commonly available on Windows)
+        execute_process(
+            COMMAND git apply --check ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
+            RESULT_VARIABLE PATCH_CHECK_RESULT
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+
+        if(PATCH_CHECK_RESULT EQUAL 0)
+            # Patch can be applied
+            execute_process(
+                COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
+                RESULT_VARIABLE PATCH_RESULT
+                OUTPUT_VARIABLE PATCH_OUTPUT
+                ERROR_VARIABLE PATCH_ERROR
+            )
+        else()
+            # Try patch command if available
+            find_program(PATCH_EXECUTABLE patch)
+            if(PATCH_EXECUTABLE)
+                execute_process(
+                    COMMAND ${PATCH_EXECUTABLE} -p1 -N -i ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
+                    RESULT_VARIABLE PATCH_RESULT
+                    OUTPUT_VARIABLE PATCH_OUTPUT
+                    ERROR_VARIABLE PATCH_ERROR
+                )
+            else()
+                message(STATUS "Neither git apply nor patch command available - assuming patch already applied")
+                set(PATCH_RESULT 1)
+            endif()
+        endif()
+    else()
+        # Unix/Linux/macOS - use patch command
+        execute_process(
+            COMMAND patch -p1 -N
+            INPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/patches/memory-loading.patch
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp
+            RESULT_VARIABLE PATCH_RESULT
+            OUTPUT_VARIABLE PATCH_OUTPUT
+            ERROR_VARIABLE PATCH_ERROR
+        )
+    endif()
 
     if(PATCH_RESULT EQUAL 0)
         file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp/.memory_patch_applied" "patch applied")

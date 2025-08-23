@@ -53,15 +53,13 @@ export LD_LIBRARY_PATH=$buildDir/lib
 cd ./cmd/llama
 go build $cudaTag -ldflags "-X ${versionBuild}" -o $buildDir/bin/llama
 
-# Build modelembed example executable (mmap demonstration)
-cd ../modelembed
-go build $cudaTag -ldflags "-X ${versionBuild}" -o $buildDir/bin/modelembed
+# # Build modelembed example executable (mmap demonstration)
+# cd ../modelembed
+# go build $cudaTag -ldflags "-X ${versionBuild}" -o $buildDir/bin/modelembed
 
 cd ../..
 
 echo "Output executable file:${buildDir}/bin/llama"
 $buildDir/bin/llama --version
 
-echo "Output modelembed example:${buildDir}/bin/modelembed"
-
-
+# echo "Output modelembed example:${buildDir}/bin/modelembed"

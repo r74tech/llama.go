@@ -50,6 +50,21 @@ index 79ee2020..ea69e08f 100644
  
      GGML_API void gguf_free(struct gguf_context * ctx);
  
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.c b/ggml/src/ggml-cpu/ggml-cpu.c
+index d89cd8f4..f8b01bf2 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.c
++++ b/ggml/src/ggml-cpu/ggml-cpu.c
+@@ -2410,7 +2410,9 @@ static bool ggml_thread_apply_priority(int32_t prio) {
+         // Newer Windows 11 versions aggresively park (offline) CPU cores and often place
+         // all our threads onto the first 4 cores which results in terrible performance with
+         // n_threads > 4
+-        #if _WIN32_WINNT >= 0x0602
++        // THREAD_POWER_THROTTLING_STATE requires Windows SDK 10.0.17134.0 or later
++        // Disable this feature for older MinGW/SDK versions
++        #if 0 // Disabled for compatibility with older Windows SDK versions
+         THREAD_POWER_THROTTLING_STATE t;
+         ZeroMemory(&t, sizeof(t));
+         t.Version     = THREAD_POWER_THROTTLING_CURRENT_VERSION;
 diff --git a/ggml/src/gguf.cpp b/ggml/src/gguf.cpp
 index 53504399..252ecd7f 100644
 --- a/ggml/src/gguf.cpp
